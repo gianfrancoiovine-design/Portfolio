@@ -1,0 +1,2529 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Gianfranco Iovine">
+    <meta name="copyright" content="Copyright 2026 Gianfranco Iovine. Tutti i diritti riservati.">
+    <title>Dossier Strategico | Gianfranco Iovine</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=Cormorant+Garamond:ital,wght@0,600;1,600&family=Inter:wght@300;400;500;600;700;800&family=Montserrat:wght@300;400;500;600;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+    /* ============================================================
+       VARIABILI & RESET
+    ============================================================ */
+    :root {
+        --primary: #050A14;
+        --accent:  #C5A059;
+        --bg:      #FDFCFB;
+        --text-main: #1A1A1A;
+        --text-muted: #555555;
+        --deep:    #0A192F;
+        --gold-soft: rgba(197,160,89,0.15);
+        --transition-speed: 0.55s;
+        --nav-h: 60px;
+    }
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+        font-family: 'Inter', sans-serif;
+        background: var(--bg);
+        color: var(--text-main);
+        line-height: 1.7;
+        overflow-x: hidden;
+    }
+
+    /* ============================================================
+       GLOBAL NAV BAR — sempre visibile su tutte le pagine
+    ============================================================ */
+    #global-nav {
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        height: var(--nav-h);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 30px;
+        background: rgba(5,10,20,0.92);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border-bottom: 1px solid rgba(197,160,89,0.15);
+        transition: background 0.3s;
+    }
+    .gnav-brand {
+        font-family: 'Playfair Display', serif;
+        color: var(--accent);
+        font-size: 1.1rem;
+        letter-spacing: 1px;
+        cursor: pointer;
+        transition: opacity 0.2s;
+        user-select: none;
+    }
+    .gnav-brand:hover { opacity: 0.75; }
+
+    .gnav-pages {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .gnav-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 6px;
+        color: rgba(255,255,255,0.5);
+        font-family: 'Inter', sans-serif;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        cursor: pointer;
+        transition: all 0.25s;
+        white-space: nowrap;
+    }
+    .gnav-btn i { font-size: 0.8rem; }
+    .gnav-btn:hover {
+        color: white;
+        background: rgba(255,255,255,0.07);
+        border-color: rgba(255,255,255,0.12);
+    }
+    .gnav-btn.gnav-active {
+        color: var(--accent);
+        border-color: rgba(197,160,89,0.35);
+        background: rgba(197,160,89,0.08);
+    }
+    .gnav-sep {
+        width: 1px;
+        height: 18px;
+        background: rgba(255,255,255,0.12);
+        margin: 0 6px;
+    }
+
+    /* breadcrumb pill nel nav */
+    .gnav-crumb {
+        font-size: 0.65rem;
+        color: rgba(255,255,255,0.35);
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        transition: opacity 0.3s;
+    }
+
+    /* ============================================================
+       SISTEMA PAGINE — slide direzionale
+    ============================================================ */
+    #page-viewport {
+        position: fixed;
+        top: var(--nav-h);
+        left: 0; right: 0; bottom: 0;
+        overflow: hidden;
+    }
+    .page {
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%;
+        height: 100%;
+        overflow-y: auto;
+        overflow-x: hidden;
+        will-change: transform, opacity;
+        /* hidden by default */
+        transform: translateX(100%);
+        opacity: 0;
+        pointer-events: none;
+        transition:
+            transform var(--transition-speed) cubic-bezier(0.4,0,0.2,1),
+            opacity   var(--transition-speed) cubic-bezier(0.4,0,0.2,1);
+    }
+    .page.page-active {
+        transform: translateX(0);
+        opacity: 1;
+        pointer-events: auto;
+    }
+    /* direzione: arrivo da destra (avanzamento) */
+    .page.slide-from-right {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    /* direzione: arrivo da sinistra (ritorno) */
+    .page.slide-from-left {
+        transform: translateX(-100%);
+        opacity: 0;
+    }
+    /* uscita verso sinistra */
+    .page.slide-to-left {
+        transform: translateX(-60%) scale(0.97);
+        opacity: 0;
+    }
+    /* uscita verso destra */
+    .page.slide-to-right {
+        transform: translateX(60%) scale(0.97);
+        opacity: 0;
+    }
+
+    /* ============================================================
+       SCROLL REVEAL
+    ============================================================ */
+    .reveal {
+        opacity: 0;
+        transform: translateY(28px);
+        transition: opacity 0.65s ease, transform 0.65s ease;
+    }
+    .reveal.revealed {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    /* ============================================================
+       PULSANTI CTA DOSSIER
+    ============================================================ */
+    .btn-cta {
+        display: inline-flex;
+        align-items: center;
+        gap: 14px;
+        padding: 17px 38px;
+        font-family: 'Inter', sans-serif;
+        font-weight: 800;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 3px;
+        cursor: pointer;
+        margin-top: 36px;
+        position: relative;
+        overflow: hidden;
+        transition: color 0.35s ease;
+        border: none;
+    }
+    .btn-cta::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        transform: scaleX(0);
+        transform-origin: left;
+        transition: transform 0.35s ease;
+        z-index: 0;
+    }
+    .btn-cta span, .btn-cta i { position: relative; z-index: 1; }
+    .btn-cta:hover::before { transform: scaleX(1); }
+
+    .btn-atena {
+        background: transparent;
+        color: var(--primary);
+        border: 2px solid var(--primary);
+    }
+    .btn-atena::before { background: var(--primary); }
+    .btn-atena:hover { color: white; }
+
+    .btn-dsi {
+        background: var(--primary);
+        color: var(--accent);
+        border: 2px solid var(--accent);
+    }
+    .btn-dsi::before { background: var(--accent); }
+    .btn-dsi:hover { color: var(--primary); }
+
+    /* ============================================================
+       PAGINA 1 — DOSSIER
+    ============================================================ */
+    #page-dossier { background: var(--bg); }
+
+    .wrapper {
+        display: grid;
+        grid-template-columns: 340px 1fr;
+        min-height: 100%;
+    }
+
+    /* sidebar */
+    .sidebar {
+        background: var(--primary);
+        color: white;
+        padding: 44px 36px;
+        position: sticky;
+        top: 0;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        border-right: 1px solid rgba(255,255,255,0.08);
+        overflow-y: auto;
+    }
+    .sidebar-brand h1 {
+        font-family: 'Playfair Display', serif;
+        font-size: 2.2rem;
+        color: var(--accent);
+        line-height: 1.05;
+        margin-bottom: 6px;
+    }
+    .sidebar-brand .role-label {
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 3px;
+        opacity: 0.55;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+    .sidebar-tagline {
+        font-size: 0.78rem;
+        color: rgba(255,255,255,0.45);
+        line-height: 1.5;
+        border-left: 2px solid rgba(197,160,89,0.3);
+        padding-left: 12px;
+        margin-top: 12px;
+        font-style: italic;
+    }
+
+    .nav-menu { list-style: none; margin-top: 36px; }
+    .nav-menu li { margin-bottom: 4px; }
+    .nav-menu a {
+        color: rgba(255,255,255,0.45);
+        text-decoration: none;
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        transition: all 0.25s;
+        display: flex;
+        align-items: center;
+        padding: 9px 12px;
+        border-radius: 6px;
+    }
+    .nav-menu a i {
+        margin-right: 12px;
+        width: 14px;
+        text-align: center;
+        color: var(--accent);
+        opacity: 0.7;
+    }
+    .nav-menu a:hover {
+        color: white;
+        background: rgba(255,255,255,0.06);
+        padding-left: 16px;
+    }
+
+    .sidebar-contacts {
+        background: rgba(255,255,255,0.04);
+        padding: 22px;
+        border-radius: 10px;
+        border-left: 3px solid var(--accent);
+        margin-top: 30px;
+    }
+    .sidebar-contacts h5 {
+        font-size: 0.62rem;
+        text-transform: uppercase;
+        letter-spacing: 2.5px;
+        margin-bottom: 14px;
+        color: var(--accent);
+        opacity: 0.9;
+    }
+    .contact-link {
+        display: flex;
+        align-items: center;
+        color: rgba(255,255,255,0.8);
+        text-decoration: none;
+        font-size: 0.8rem;
+        margin-bottom: 9px;
+        transition: color 0.2s;
+    }
+    .contact-link i { margin-right: 10px; color: var(--accent); font-size: 0.75rem; width: 14px; }
+    .contact-link:hover { color: var(--accent); }
+
+    /* main dossier */
+    .main-dossier { overflow-y: visible; }
+    .dossier-section {
+        padding: 100px 7%;
+        border-bottom: 1px solid #eeece8;
+        position: relative;
+    }
+    .dossier-section:last-child { border-bottom: none; }
+
+    .section-tag {
+        color: var(--accent);
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 4px;
+        font-size: 0.72rem;
+        margin-bottom: 16px;
+        display: block;
+    }
+    .h-large {
+        font-family: 'Playfair Display', serif;
+        font-size: clamp(2.4rem, 4vw, 3.5rem);
+        line-height: 1.1;
+        margin-bottom: 30px;
+        color: var(--primary);
+    }
+
+    /* hero narrazione */
+    #narrazione {
+        background: linear-gradient(160deg, #050A14 0%, #0d1f38 100%);
+        color: white;
+        padding: 120px 7% 100px;
+        position: relative;
+        overflow: hidden;
+    }
+    #narrazione::after {
+        content: '';
+        position: absolute;
+        right: -80px; bottom: -80px;
+        width: 420px; height: 420px;
+        border-radius: 50%;
+        border: 80px solid rgba(197,160,89,0.06);
+        pointer-events: none;
+    }
+    #narrazione .section-tag { color: var(--accent); }
+    #narrazione .h-large { color: white; font-size: clamp(2.6rem, 4.5vw, 4rem); }
+    #narrazione .hero-lead {
+        font-size: 1.15rem;
+        font-weight: 300;
+        color: rgba(255,255,255,0.65);
+        max-width: 750px;
+        line-height: 1.8;
+    }
+    #narrazione .hero-lead strong { color: var(--accent); font-weight: 600; }
+
+    .hero-stats {
+        display: flex;
+        gap: 40px;
+        margin-top: 50px;
+        flex-wrap: wrap;
+    }
+    .hero-stat {
+        display: flex;
+        flex-direction: column;
+    }
+    .hero-stat-num {
+        font-family: 'Playfair Display', serif;
+        font-size: 2.4rem;
+        color: var(--accent);
+        line-height: 1;
+    }
+    .hero-stat-lab {
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: rgba(255,255,255,0.4);
+        margin-top: 4px;
+    }
+
+    /* edu cards */
+    .education-track { display: grid; gap: 32px; }
+    .edu-card {
+        border-left: 2px solid rgba(197,160,89,0.4);
+        padding-left: 28px;
+        transition: border-color 0.3s;
+    }
+    .edu-card:hover { border-color: var(--accent); }
+    .edu-card h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 6px; color: var(--primary); }
+    .edu-details {
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--accent);
+        margin-bottom: 10px;
+        display: block;
+    }
+    .edu-content { font-size: 0.95rem; color: var(--text-muted); line-height: 1.65; }
+
+    /* atena mockup */
+    .mockup-box {
+        background: #f5f4f0;
+        border: 1px solid #e0ddd5;
+        border-radius: 14px;
+        padding: 36px;
+        margin-top: 44px;
+        box-shadow: 0 24px 60px rgba(0,0,0,0.04);
+    }
+    .engine-ui {
+        background: var(--primary);
+        color: white;
+        padding: 28px;
+        border-radius: 10px;
+    }
+    .engine-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 26px;
+        align-items: center;
+    }
+    .engine-status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.65rem;
+        font-weight: 800;
+        color: var(--accent);
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+    }
+    .engine-dot {
+        width: 7px; height: 7px;
+        border-radius: 50%;
+        background: #27ae60;
+        box-shadow: 0 0 6px #27ae60;
+        animation: pulse-dot 2s infinite;
+    }
+    @keyframes pulse-dot {
+        0%,100% { opacity:1; } 50% { opacity:0.4; }
+    }
+    .engine-cr {
+        font-size: 0.65rem;
+        font-weight: 700;
+        color: rgba(255,255,255,0.5);
+        letter-spacing: 1px;
+    }
+    .ahp-control { margin-bottom: 22px; }
+    .ahp-labels {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.65rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+        color: rgba(197,160,89,0.85);
+        letter-spacing: 0.5px;
+    }
+    .ahp-track { height: 3px; background: rgba(255,255,255,0.08); border-radius: 2px; position: relative; }
+    .ahp-fill {
+        position: absolute;
+        left: 0; top: 0; height: 100%;
+        background: linear-gradient(90deg, rgba(197,160,89,0.3), var(--accent));
+        border-radius: 2px;
+        transition: width 1s ease;
+    }
+    .ahp-knob {
+        width: 16px; height: 16px;
+        background: var(--accent);
+        border-radius: 50%;
+        position: absolute;
+        top: -6px;
+        border: 3px solid var(--primary);
+        box-shadow: 0 0 0 2px rgba(197,160,89,0.4);
+        transition: left 1s ease;
+    }
+    .code-display {
+        background: #011627;
+        padding: 18px;
+        border-radius: 8px;
+        font-family: 'Fira Code', monospace;
+        font-size: 0.77rem;
+        color: #addb67;
+        margin-top: 18px;
+        border-left: 3px solid var(--accent);
+        line-height: 1.6;
+    }
+    .mockup-caption {
+        margin-top: 20px;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        font-style: italic;
+        text-align: center;
+        padding: 0 10px;
+    }
+
+    /* DSI section */
+    .dsi-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+        margin-top: 36px;
+    }
+    .dsi-quote {
+        font-family: 'Playfair Display', serif;
+        font-size: 1.6rem;
+        font-style: italic;
+        color: var(--primary);
+        border-left: 4px solid var(--accent);
+        padding-left: 26px;
+        grid-column: 1 / -1;
+        margin-bottom: 10px;
+        line-height: 1.4;
+    }
+    .dsi-item {
+        background: #faf9f7;
+        border-radius: 10px;
+        padding: 24px;
+        border-top: 3px solid transparent;
+        transition: border-color 0.3s, box-shadow 0.3s;
+    }
+    .dsi-item:hover {
+        border-color: var(--accent);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+    }
+    .dsi-item h4 {
+        color: var(--accent);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 8px;
+        font-size: 0.75rem;
+        font-weight: 800;
+    }
+    .dsi-item p { font-size: 0.92rem; color: var(--text-muted); margin: 0; }
+
+    /* papers */
+    .paper {
+        padding: 22px 0;
+        border-bottom: 1px solid #eee;
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 0 20px;
+        align-items: start;
+        transition: padding-left 0.2s;
+    }
+    .paper:hover { padding-left: 8px; }
+    .paper:last-child { border: none; }
+    .paper-meta {
+        font-size: 0.67rem;
+        font-weight: 800;
+        color: var(--accent);
+        text-transform: uppercase;
+        display: block;
+        margin-bottom: 4px;
+        letter-spacing: 0.5px;
+        grid-column: 1 / -1;
+    }
+    .paper h4 {
+        font-size: 1rem;
+        color: var(--primary);
+        font-weight: 600;
+        grid-column: 1 / -1;
+    }
+
+    /* dossier footer */
+    .dossier-footer {
+        padding: 80px 7%;
+        background: var(--primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+    .dossier-footer h2 {
+        font-family: 'Playfair Display', serif;
+        color: var(--accent);
+        font-size: 1.8rem;
+    }
+    .dossier-footer p { opacity: 0.5; font-size: 0.82rem; margin-top: 6px; }
+
+    /* ============================================================
+       PAGINA 2 — DSI MANIFESTO
+    ============================================================ */
+    #page-dsi {
+        font-family: 'Montserrat', sans-serif;
+        background: var(--bg);
+        color: var(--text-main);
+    }
+    #page-dsi .container { max-width: 1100px; margin: 0 auto; padding: 0 28px; }
+    #page-dsi header {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        background:
+            linear-gradient(to right, rgba(10,25,47,0.96), rgba(10,25,47,0.82)),
+            url('https://images.unsplash.com/photo-1461354464878-ad92f492a5a0?auto=format&fit=crop&q=80');
+        background-size: cover;
+        background-position: center;
+        color: white;
+        padding: 100px 10% 60px;
+    }
+    #page-dsi .hero-pre {
+        color: var(--accent);
+        letter-spacing: 5px;
+        font-weight: 800;
+        text-transform: uppercase;
+        margin-bottom: 20px;
+        font-size: 0.8rem;
+    }
+    #page-dsi h1 {
+        font-family: 'Cormorant Garamond', serif;
+        font-size: clamp(3rem, 8vw, 6rem);
+        line-height: 1;
+        margin-bottom: 30px;
+    }
+    #page-dsi .hero-sub {
+        max-width: 750px;
+        font-size: clamp(1rem, 1.8vw, 1.25rem);
+        font-weight: 300;
+        border-left: 3px solid var(--accent);
+        padding-left: 24px;
+        opacity: 0.85;
+        line-height: 1.7;
+    }
+    #page-dsi section { padding: 90px 0; border-bottom: 1px solid #eee; }
+    #page-dsi .section-tag {
+        color: var(--accent);
+        font-weight: 800;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        margin-bottom: 14px;
+        display: block;
+        letter-spacing: 2px;
+    }
+    #page-dsi h2 {
+        font-family: 'Cormorant Garamond', serif;
+        font-size: clamp(2.2rem, 4.5vw, 3.5rem);
+        line-height: 1.1;
+        margin-bottom: 22px;
+        color: var(--deep);
+    }
+    #page-dsi p { margin-bottom: 18px; font-size: 1rem; }
+    #page-dsi .lead { font-size: 1.25rem; color: var(--deep); font-weight: 600; line-height: 1.45; margin-bottom: 22px; }
+    #page-dsi .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 70px; align-items: start; }
+    #page-dsi .reveal-box {
+        background: var(--deep);
+        color: white;
+        padding: 44px;
+        border-radius: 4px;
+        box-shadow: 16px 16px 0 var(--accent);
+    }
+    #page-dsi .pill {
+        display: inline-block;
+        padding: 7px 18px;
+        border: 1px solid var(--accent);
+        border-radius: 50px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        margin: 0 8px 8px 0;
+        color: var(--accent);
+        text-transform: uppercase;
+    }
+    #page-dsi .objective-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+        gap: 24px;
+        margin-top: 50px;
+    }
+    #page-dsi .obj-card {
+        background: white;
+        padding: 36px;
+        border-bottom: 3px solid var(--accent);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+        transition: 0.35s;
+    }
+    #page-dsi .obj-card:hover { transform: translateY(-8px); box-shadow: 0 18px 40px rgba(0,0,0,0.1); }
+    #page-dsi .obj-card h3 {
+        font-family: 'Cormorant Garamond', serif;
+        color: var(--accent);
+        margin-bottom: 16px;
+        font-size: 1.8rem;
+    }
+    #page-dsi .wow-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+        gap: 30px;
+        margin-top: 50px;
+    }
+    #page-dsi .wow-card { padding: 36px; background: white; border: 1px solid #eee; transition: 0.35s; }
+    #page-dsi .wow-card:hover { border-color: var(--accent); transform: translateY(-8px); }
+    #page-dsi .wow-card h3 {
+        font-family: 'Cormorant Garamond', serif;
+        font-size: 1.8rem;
+        color: var(--accent);
+        margin-bottom: 12px;
+    }
+    #page-dsi .dsi-step { display: flex; gap: 28px; margin-bottom: 40px; align-items: flex-start; }
+    #page-dsi .step-count {
+        font-family: 'Cormorant Garamond', serif;
+        font-size: 3.5rem;
+        color: #ddd;
+        font-weight: 700;
+        line-height: 1;
+        min-width: 70px;
+    }
+    #page-dsi .step-content h4 {
+        font-size: 1.1rem;
+        color: var(--deep);
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    #page-dsi .pilot-section {
+        background: var(--deep);
+        color: white;
+        border-radius: 8px;
+        padding: 80px 8%;
+        margin: 50px 0;
+    }
+    #page-dsi .pilot-section h2 { color: white; margin-bottom: 24px; }
+    #page-dsi .pilot-tag {
+        background: var(--accent);
+        color: var(--deep);
+        padding: 7px 22px;
+        font-weight: 800;
+        border-radius: 50px;
+        font-size: 0.72rem;
+        letter-spacing: 2px;
+        display: inline-block;
+    }
+    #page-dsi .pilot-list { list-style: none; margin-top: 26px; }
+    #page-dsi .pilot-list li {
+        margin-bottom: 16px;
+        padding-left: 32px;
+        position: relative;
+        font-weight: 500;
+        font-size: 1rem;
+    }
+    #page-dsi .pilot-list li::before {
+        content: "✓";
+        position: absolute;
+        left: 0;
+        color: var(--accent);
+        font-weight: 900;
+        font-size: 1.1rem;
+    }
+    #page-dsi footer { background: #050c18; color: white; padding: 90px 0; }
+    #page-dsi .signature-name {
+        font-family: 'Cormorant Garamond', serif;
+        font-size: clamp(2.5rem, 5vw, 4rem);
+        color: var(--accent);
+        line-height: 1;
+        margin-top: 16px;
+    }
+    #page-dsi .legal-notice {
+        font-size: 0.7rem;
+        opacity: 0.5;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        line-height: 1.7;
+        margin-top: 26px;
+    }
+
+    /* ============================================================
+       PAGINA 3 — CRUSCOTTO ATENA
+    ============================================================ */
+    #page-atena { background: #f0f2f5; }
+    #atena-app {
+        display: flex;
+        height: 100%;
+        font-family: 'Inter', sans-serif;
+        overflow: hidden;
+    }
+    #atena-sidebar {
+        width: 280px;
+        flex-shrink: 0;
+        background: var(--primary);
+        color: white;
+        padding: 30px 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 26px;
+        box-shadow: 4px 0 20px rgba(0,0,0,0.2);
+        overflow-y: auto;
+    }
+    .atena-brand { text-align: center; }
+    .atena-logo-ring {
+        width: 64px; height: 64px;
+        margin: 0 auto 14px;
+        border: 2px solid var(--accent);
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.6rem; color: var(--accent);
+        animation: spinRing 10s linear infinite;
+    }
+    @keyframes spinRing { to { transform: rotate(360deg); } }
+    .atena-brand h2 {
+        margin: 0;
+        font-family: 'Playfair Display', serif;
+        font-size: 1.4rem;
+    }
+    .atena-brand h2 span { color: var(--accent); }
+    .atena-subtitle {
+        font-size: 0.62rem;
+        text-transform: uppercase;
+        letter-spacing: 2.5px;
+        opacity: 0.45;
+        margin-top: 4px;
+    }
+    .atena-nav { display: flex; flex-direction: column; gap: 6px; }
+    .atena-nav-btn {
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.08);
+        color: rgba(255,255,255,0.6);
+        padding: 11px 14px;
+        border-radius: 8px;
+        cursor: pointer;
+        text-align: left;
+        font-family: 'Inter', sans-serif;
+        font-size: 0.82rem;
+        transition: all 0.22s;
+        display: flex; align-items: center; gap: 10px;
+    }
+    .atena-nav-btn:hover { background: rgba(255,255,255,0.1); color: white; }
+    .atena-nav-btn.a-active { background: var(--accent); color: var(--primary); border-color: var(--accent); font-weight: 700; }
+
+    .atena-method-box {
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(197,160,89,0.18);
+        border-radius: 10px;
+        padding: 16px;
+        font-size: 0.75rem;
+        color: rgba(255,255,255,0.55);
+        line-height: 1.6;
+    }
+    .atena-method-tag {
+        display: block;
+        color: var(--accent);
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-size: 0.65rem;
+        margin-bottom: 7px;
+    }
+    .atena-cr-badge {
+        display: inline-block;
+        margin-top: 10px;
+        background: rgba(197,160,89,0.1);
+        border: 1px solid rgba(197,160,89,0.3);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: var(--accent);
+        transition: all 0.3s;
+    }
+    .atena-status {
+        margin-top: auto;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        font-size: 0.72rem;
+        opacity: 0.55;
+    }
+    .status-dot {
+        width: 7px; height: 7px;
+        border-radius: 50%;
+        background: #636e72;
+        transition: all 0.4s;
+    }
+    .status-dot.s-active {
+        background: #27ae60;
+        box-shadow: 0 0 8px rgba(39,174,96,0.7);
+    }
+    #atena-main {
+        flex: 1;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+    }
+    #atena-progress-wrap { height: 4px; background: rgba(0,0,0,0.08); flex-shrink: 0; }
+    #atena-progress-bar { height: 100%; background: var(--accent); width: 0%; transition: width 0.4s ease; }
+
+    .atena-section { display: none; padding: 44px 48px; flex: 1; }
+    .atena-section.a-active-section { display: block; animation: fadeSection 0.35s ease; }
+    @keyframes fadeSection { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+    .atena-step { display: none; max-width: 640px; margin: 0 auto; }
+    .atena-step.a-active-step { display: block; animation: slideStepIn 0.38s cubic-bezier(0.4,0,0.2,1); }
+    @keyframes slideStepIn { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }
+
+    .atena-step-header { margin-bottom: 30px; }
+    .step-label { font-size: 0.68rem; font-weight: 800; color: var(--accent); text-transform: uppercase; letter-spacing: 2px; }
+    .atena-step-header h2 {
+        font-family: 'Playfair Display', serif;
+        font-size: 1.8rem;
+        color: var(--primary);
+        margin: 6px 0 4px;
+    }
+    .atena-step-header p { color: #888; font-size: 0.88rem; }
+
+    .atena-form-group { margin-bottom: 22px; }
+    .atena-form-group label {
+        display: block;
+        font-weight: 700;
+        font-size: 0.75rem;
+        color: var(--primary);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 9px;
+    }
+    .atena-input {
+        width: 100%;
+        padding: 14px 18px;
+        border: 2px solid #e0e0e0;
+        border-radius: 10px;
+        font-size: 0.95rem;
+        font-family: 'Inter', sans-serif;
+        transition: 0.25s;
+        box-sizing: border-box;
+        background: white;
+    }
+    .atena-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px rgba(197,160,89,0.1); }
+
+    .role-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .role-card {
+        border: 2px solid #e8e8e8;
+        border-radius: 10px;
+        padding: 14px 8px;
+        text-align: center;
+        cursor: pointer;
+        transition: 0.22s;
+        display: flex; flex-direction: column; align-items: center; gap: 7px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #999;
+        background: white;
+    }
+    .role-card i { font-size: 1.3rem; }
+    .role-card:hover { border-color: var(--accent); color: var(--accent); }
+    .role-card.a-active-role { border-color: var(--accent); background: rgba(197,160,89,0.07); color: var(--accent); }
+
+    .vs-arena {
+        display: flex; align-items: center; justify-content: space-between;
+        background: var(--primary); border-radius: 12px; padding: 26px 30px;
+        margin: 22px 0; gap: 16px;
+    }
+    .vs-label {
+        font-family: 'Playfair Display', serif;
+        font-size: 1.05rem; color: white; flex: 1;
+    }
+    .vs-label.left { text-align: right; }
+    .vs-label.right { text-align: left; }
+    .vs-badge-big {
+        width: 48px; height: 48px; border-radius: 50%;
+        background: var(--accent); color: var(--primary);
+        font-weight: 900; font-size: 0.72rem; letter-spacing: 1px;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+    }
+    .slider-zone { margin: 8px 0 26px; }
+    .slider-scale {
+        display: flex; justify-content: space-between;
+        font-size: 0.64rem; color: #bbb; font-weight: 700; margin-bottom: 10px;
+    }
+    input.atena-slider {
+        -webkit-appearance: none;
+        width: 100%; height: 7px; border-radius: 4px;
+        background: linear-gradient(to right, #3498db, #eee 50%, #e74c3c);
+        outline: none; cursor: pointer;
+    }
+    input.atena-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 24px; height: 24px; border-radius: 50%;
+        background: white; border: 4px solid var(--primary); cursor: pointer;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.18); transition: transform 0.2s;
+    }
+    input.atena-slider::-webkit-slider-thumb:hover { transform: scale(1.2); }
+    .slider-feedback {
+        text-align: center;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--primary);
+        margin-top: 12px;
+        min-height: 26px;
+    }
+    .atena-btn-row {
+        display: flex; justify-content: space-between; align-items: center; margin-top: 30px;
+    }
+    .atena-btn-next, .atena-btn-prev {
+        padding: 12px 26px; border-radius: 50px; border: none;
+        cursor: pointer; font-weight: 700; font-size: 0.82rem;
+        display: flex; align-items: center; gap: 9px; transition: all 0.22s;
+        font-family: 'Inter', sans-serif;
+    }
+    .atena-btn-next { background: var(--primary); color: white; }
+    .atena-btn-next:hover { background: var(--accent); color: var(--primary); transform: translateY(-2px); }
+    .atena-btn-prev { background: #ecf0f1; color: #666; }
+    .atena-btn-prev:hover { background: #dfe6e9; }
+
+    .confirm-icon { font-size: 4.5rem; color: #27ae60; margin-bottom: 16px; animation: popIn 0.5s cubic-bezier(0.17,0.67,0.3,1.3); }
+    @keyframes popIn { from { transform: scale(0); opacity:0; } to { transform: scale(1); opacity:1; } }
+
+    .results-header { margin-bottom: 26px; }
+    .results-header h2 {
+        font-family: 'Playfair Display', serif;
+        font-size: 1.7rem;
+        color: var(--primary);
+        margin: 0;
+        display: flex; align-items: center; gap: 10px;
+    }
+    .results-header p { color: #888; margin-top: 4px; font-size: 0.88rem; }
+
+    .results-stats {
+        display: grid; grid-template-columns: repeat(3, 1fr);
+        gap: 16px; margin-bottom: 22px;
+    }
+    .rstat-card {
+        background: white; border-radius: 12px; padding: 20px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+        text-align: center;
+        border-bottom: 3px solid var(--accent);
+    }
+    .rstat-label { display: block; font-size: 0.68rem; font-weight: 800; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
+    .rstat-val { display: block; font-size: 1.8rem; font-weight: 700; color: var(--primary); margin-top: 6px; }
+
+    .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .res-card {
+        background: white; border-radius: 12px; padding: 22px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+    }
+    .res-card h4 { margin: 0 0 16px; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 1px; color: #666; }
+    .interp-box {
+        background: #fff8f0; border-left: 3px solid var(--accent);
+        border-radius: 8px; padding: 18px; font-size: 0.88rem;
+        color: #555; line-height: 1.7; margin-top: 0;
+    }
+    .registro-table-wrap { overflow-x: auto; border-radius: 12px; }
+    .registro-table {
+        width: 100%; border-collapse: collapse; background: white;
+        border-radius: 12px; overflow: hidden;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+    }
+    .registro-table th {
+        background: var(--primary); color: white;
+        padding: 12px 16px; font-size: 0.72rem;
+        text-transform: uppercase; letter-spacing: 1px; text-align: left;
+    }
+    .registro-table td { padding: 12px 16px; border-bottom: 1px solid #f5f5f5; font-size: 0.86rem; }
+    .registro-table tr:last-child td { border: none; }
+    .cr-ok { color: #27ae60; font-weight: 700; }
+    .cr-warn { color: #e67e22; font-weight: 700; }
+    .cr-err { color: #e74c3c; font-weight: 700; }
+
+    /* ============================================================
+       RESPONSIVE — TABLET (≤1000px)
+    ============================================================ */
+    @media (max-width: 1000px) {
+        .wrapper { grid-template-columns: 1fr; }
+        .sidebar { height: auto; position: relative; }
+        #page-dsi .grid { grid-template-columns: 1fr; gap: 40px; }
+        #page-dsi header { padding: 100px 6% 60px; }
+        .gnav-btn span { display: none; }
+        .gnav-btn { padding: 8px 11px; }
+        #page-dsi .reveal-box { box-shadow: 10px 10px 0 var(--accent); }
+    }
+
+    /* ============================================================
+       RESPONSIVE — MOBILE (≤768px)
+    ============================================================ */
+    @media (max-width: 768px) {
+
+        /* --- Navbar --- */
+        #global-nav {
+            padding: 0 12px;
+            height: 54px;
+        }
+        :root { --nav-h: 54px; }
+        .gnav-brand { font-size: 0.95rem; }
+        .gnav-pages { gap: 2px; }
+        .gnav-btn {
+            padding: 7px 9px;
+            font-size: 0;
+            gap: 0;
+            border-radius: 8px;
+        }
+        .gnav-btn i { font-size: 1rem; }
+        .gnav-sep { display: none; }
+        .gnav-crumb { display: none; }
+
+        /* --- Dossier layout --- */
+        .wrapper { grid-template-columns: 1fr; }
+        .sidebar {
+            height: auto;
+            position: relative;
+            padding: 28px 20px 20px;
+        }
+        .sidebar-brand h1 { font-size: 1.7rem; }
+        .nav-menu { margin-top: 18px; }
+        .sidebar-contacts { margin-top: 18px; }
+
+        /* --- Sezioni dossier --- */
+        .dossier-section { padding: 48px 5%; }
+        #narrazione { padding: 56px 5% 44px; }
+        #narrazione .h-large { font-size: clamp(1.8rem, 7vw, 2.6rem); }
+        #narrazione .hero-lead { font-size: 1rem; }
+        .h-large { font-size: clamp(1.8rem, 6.5vw, 2.8rem); }
+
+        .hero-stats { gap: 20px; flex-wrap: wrap; }
+        .hero-stat-num { font-size: 1.9rem; }
+
+        /* --- DSI grid --- */
+        .dsi-container { grid-template-columns: 1fr; }
+        .dsi-quote { font-size: 1.2rem; padding-left: 16px; }
+
+        /* --- DSI page --- */
+        #page-dsi header { padding: 70px 6% 48px; min-height: auto; }
+        #page-dsi .grid { grid-template-columns: 1fr; gap: 28px; }
+        #page-dsi section { padding: 52px 0; }
+        #page-dsi .objective-grid { gap: 16px; margin-top: 28px; }
+        #page-dsi .obj-card { padding: 24px; }
+        #page-dsi .wow-grid { gap: 16px; margin-top: 28px; }
+        #page-dsi .wow-card { padding: 24px; }
+        #page-dsi .reveal-box {
+            padding: 26px 20px;
+            box-shadow: 6px 6px 0 var(--accent);
+        }
+        #page-dsi .dsi-step { flex-direction: column; gap: 6px; }
+        #page-dsi .step-count { font-size: 2.2rem; min-width: unset; }
+        #page-dsi .pilot-section { padding: 48px 6%; }
+        #page-dsi footer { padding: 60px 0; }
+
+        /* --- CTA buttons --- */
+        .btn-cta {
+            padding: 14px 22px;
+            letter-spacing: 1.5px;
+            font-size: 0.68rem;
+            margin-top: 20px;
+        }
+
+        /* --- Dossier footer --- */
+        .dossier-footer { padding: 50px 6%; flex-direction: column; gap: 16px; text-align: center; }
+
+        /* --- ATENA app --- */
+        #atena-app { flex-direction: column; overflow: auto; }
+        #atena-sidebar {
+            width: 100%;
+            height: auto;
+            flex-direction: row;
+            flex-wrap: wrap;
+            padding: 14px 16px;
+            gap: 10px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+        }
+        .atena-brand { display: none; }
+        .atena-nav {
+            flex-direction: row;
+            flex-wrap: wrap;
+            gap: 6px;
+            width: 100%;
+        }
+        .atena-nav-btn { flex: 1; min-width: 110px; text-align: center; justify-content: center; font-size: 0.75rem; }
+        .atena-method-box { display: none; }
+        .atena-status { width: 100%; justify-content: center; margin: 0; }
+        #atena-main { height: auto; overflow: visible; flex: none; min-height: 60vh; }
+        .atena-section { padding: 22px 16px; }
+
+        /* --- ATENA wizard --- */
+        .role-grid { grid-template-columns: repeat(2, 1fr); }
+        .vs-arena { flex-direction: column; padding: 18px 16px; gap: 10px; text-align: center; }
+        .vs-label { text-align: center !important; font-size: 0.9rem; }
+        .atena-btn-row { flex-direction: column-reverse; gap: 10px; }
+        .atena-btn-next, .atena-btn-prev { width: 100%; justify-content: center; }
+
+        /* --- ATENA results --- */
+        .results-stats { grid-template-columns: 1fr 1fr; }
+        .results-grid { grid-template-columns: 1fr; }
+        .rstat-val { font-size: 1.4rem; }
+
+        /* --- Mockup box --- */
+        .mockup-box { padding: 20px; margin-top: 24px; }
+        .engine-ui { padding: 18px; }
+        .engine-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+
+        /* --- Papers grid --- */
+        .paper { grid-template-columns: 1fr; gap: 4px; padding: 16px 0; }
+    }
+
+    /* ============================================================
+       RESPONSIVE — SMALL PHONES (≤480px)
+    ============================================================ */
+    @media (max-width: 480px) {
+        .gnav-brand { font-size: 0.85rem; }
+        .gnav-btn { padding: 6px 8px; }
+        .dossier-section { padding: 36px 4%; }
+        #narrazione { padding: 44px 4% 36px; }
+        .sidebar { padding: 22px 16px 16px; }
+        .sidebar-brand h1 { font-size: 1.5rem; }
+        .hero-stats { gap: 14px; }
+        .hero-stat-num { font-size: 1.6rem; }
+        .role-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .results-stats { grid-template-columns: 1fr; }
+        .atena-section { padding: 16px 12px; }
+        #page-dsi header { padding: 56px 5% 36px; }
+        #page-dsi .pilot-section { padding: 36px 5%; }
+        .btn-cta { padding: 12px 18px; width: 100%; justify-content: center; }
+        .dsi-quote { font-size: 1.1rem; }
+        .code-display { font-size: 0.68rem; padding: 14px; }
+    }
+    </style>
+</head>
+<body>
+
+<!-- ============================================================
+     GLOBAL NAVIGATION BAR
+============================================================ -->
+<nav id="global-nav">
+    <div class="gnav-brand" onclick="navigateTo('page-dossier', -1)" title="Home">
+        G. Iovine
+    </div>
+
+    <div class="gnav-pages">
+        <button class="gnav-btn gnav-active" id="gnav-btn-dossier" onclick="navigateTo('page-dossier', -1)">
+            <i class="fas fa-user"></i>
+            <span>Dossier</span>
+        </button>
+        <div class="gnav-sep"></div>
+        <button class="gnav-btn" id="gnav-btn-atena" onclick="navigateTo('page-atena', 1)">
+            <i class="fas fa-compass"></i>
+            <span>Atena Compass</span>
+        </button>
+        <div class="gnav-sep"></div>
+        <button class="gnav-btn" id="gnav-btn-dsi" onclick="navigateTo('page-dsi', 1)">
+            <i class="fas fa-seedling"></i>
+            <span>DSI Manifesto</span>
+        </button>
+<div class="gnav-sep"></div>
+        <button class="gnav-btn" id="gnav-btn-scl" onclick="navigateTo('page-scl', 1)">
+            <i class="fas fa-tree"></i>
+            <span>SCL</span>
+        </button>
+    </div>
+
+    <span class="gnav-crumb" id="gnav-crumb">Dossier Strategico</span>
+</nav>
+
+<!-- ============================================================
+     PAGE VIEWPORT
+============================================================ -->
+<div id="page-viewport">
+
+<!-- ============================================================
+     PAGINA 1: DOSSIER STRATEGICO
+============================================================ -->
+<div id="page-dossier" class="page page-active">
+    <div class="wrapper">
+
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <h1>Gianfranco<br>Iovine</h1>
+                <p class="role-label">Decision Analyst · PhD</p>
+                <p class="sidebar-tagline">Ingegneria delle decisioni al servizio del territorio e della comunità.</p>
+                <nav>
+                    <ul class="nav-menu" style="margin-top: 28px;">
+                        <li><a href="#narrazione" onclick="scrollDossier('narrazione')"><i class="fas fa-book-open"></i> La Narrazione</a></li>
+                        <li><a href="#formazione" onclick="scrollDossier('formazione')"><i class="fas fa-graduation-cap"></i> Formazione</a></li>
+                        <li><a href="#atena" onclick="scrollDossier('atena')"><i class="fas fa-compass"></i> Atena Compass</a></li>
+                        <li><a href="#dsi" onclick="scrollDossier('dsi')"><i class="fas fa-seedling"></i> Progetto DSI</a></li>
+                        <li><a href="#papers" onclick="scrollDossier('papers')"><i class="fas fa-microscope"></i> Ricerca</a></li>
+                    </ul>
+                </nav>
+            </div>
+
+            <div class="sidebar-contacts">
+                <h5>Contatti Diretti</h5>
+                <a href="mailto:info.gfr@icloud.com" class="contact-link"><i class="fas fa-envelope"></i> info.gfr@icloud.com</a>
+                <a href="tel:+393462284379" class="contact-link"><i class="fas fa-phone"></i> +39 346 2284379</a>
+                <a href="#" class="contact-link"><i class="fab fa-linkedin"></i> Gianfranco Iovine</a>
+                <p style="font-size:0.6rem; opacity:0.4; margin-top:12px;">Vallo di Diano · Napoli · Viterbo</p>
+            </div>
+        </aside>
+
+        <main class="main-dossier" id="dossier-main-scroll">
+
+            <!-- HERO NARRAZIONE -->
+            <div class="dossier-section" id="narrazione">
+                <span class="section-tag">L'Identità Professionale</span>
+                <h2 class="h-large" style="color:white;">L'Ingegneria delle Decisioni<br>al servizio del Territorio.</h2>
+                <p class="hero-lead">
+                    La mia missione è colmare il divario tra l'astrazione del dato matematico e l'urgenza della decisione pubblica. Attraverso la costruzione di modelli <strong>DSS (Decision Support Systems)</strong>, trasformo la complessità dei sistemi socio-economici in percorsi di governance trasparenti, oggettivi e partecipati.
+                </p>
+                <div class="hero-stats">
+                    <div class="hero-stat">
+                        <span class="hero-stat-num">6+</span>
+                        <span class="hero-stat-lab">Pubblicazioni</span>
+                    </div>
+                    <div class="hero-stat">
+                        <span class="hero-stat-num">3</span>
+                        <span class="hero-stat-lab">Sedi Accademiche</span>
+                    </div>
+                    <div class="hero-stat">
+                        <span class="hero-stat-num">AHP</span>
+                        <span class="hero-stat-lab">Metodologia Core</span>
+                    </div>
+                    <div class="hero-stat">
+                        <span class="hero-stat-num">2026</span>
+                        <span class="hero-stat-lab">PhD Completion</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FORMAZIONE -->
+            <div class="dossier-section reveal" id="formazione" style="background:#fafaf8;">
+                <span class="section-tag">Asset Formativi</span>
+                <h2 class="h-large">Formazione Accademica.</h2>
+                <div class="education-track">
+                    <div class="edu-card reveal">
+                        <h3>PhD in Engineering For Energy and Environment</h3>
+                        <span class="edu-details">Università della Tuscia · Viterbo (2026)</span>
+                        <div class="edu-content">Specializzazione nella modellazione di indicatori di sostenibilità e algoritmi multicriterio (AHP, Shannon Entropy) per la valutazione degli impatti territoriali.</div>
+                    </div>
+                    <div class="edu-card reveal">
+                        <h3>Laurea Magistrale in Economia e Finanza</h3>
+                        <span class="edu-details">Università degli Studi di Salerno (2022)</span>
+                        <div class="edu-content">Analisi quantitativa e modelli econometrici applicati ai mercati finanziari e ai sistemi economici complessi.</div>
+                    </div>
+                    <div class="edu-card reveal">
+                        <h3>Laurea Triennale in Economia Aziendale</h3>
+                        <span class="edu-details">Università degli Studi di Salerno</span>
+                        <div class="edu-content">Fondamenti di gestione d'impresa, contabilità e analisi di bilancio.</div>
+                    </div>
+                    <div class="edu-card reveal">
+                        <h3>Diploma C.A.T. — Costruzioni Ambiente e Territorio</h3>
+                        <span class="edu-details">Sala Consilina (SA)</span>
+                        <div class="edu-content">Competenze tecniche in topografia, estimo e progettazione infrastrutturale.</div>
+                    </div>
+                </div>
+
+                <hr style="margin: 50px 0; border:0; border-top:1px solid #eee;">
+                <span class="section-tag">Esperienze & Ricerca</span>
+                <h2 class="h-large">Progetti e Ruoli Professionali.</h2>
+                <div class="education-track">
+                    <div class="edu-card reveal">
+                        <h3>Winter School "Fare Impresa. Fare Comunità."</h3>
+                        <span class="edu-details">Atena Lucana · Progetto Archivio Atena (2026)</span>
+                        <div class="edu-content">Laboratorio di co-progettazione territoriale. Come conciliare la necessità di generare valore economico con l'esigenza di tutelare il valore sociale e identitario di una comunità?</div>
+                    </div>
+                    <div class="edu-card reveal">
+                        <h3>Concorso Idee — Protocollo DSI</h3>
+                        <span class="edu-details">Protezione Civile · Gruppo Lucano-Sassano (2026)</span>
+                        <div class="edu-content">Ideazione del protocollo <strong>DSI (Diano Social Incubator)</strong>: sistema di rigenerazione basato sulla <strong>Silver Economy</strong> per il trasferimento di competenze intergenerazionali e la creazione di micro-imprese nelle aree interne.</div>
+                    </div>
+                    <div class="edu-card reveal">
+                        <h3>Visiting Researcher (Erasmus+)</h3>
+                        <span class="edu-details">UPV — Universitat Politècnica de València</span>
+                        <div class="edu-content">Ricerca avanzata su algoritmi MCDA in contesti internazionali e sistemi decisionali complessi.</div>
+                    </div>
+                    <div class="edu-card reveal">
+                        <h3>Consulente Tecnologie 4.0</h3>
+                        <span class="edu-details">CCIAA Napoli</span>
+                        <div class="edu-content">Supporto strategico su tecnologie abilitanti: <strong>Blockchain</strong>, <strong>Metaverso</strong> e trasformazione digitale per il tessuto imprenditoriale locale.</div>
+                    </div>
+                    <div class="edu-card reveal">
+                        <h3>Teaching & Research Support</h3>
+                        <span class="edu-details">Luiss Business School · Università Parthenope Napoli</span>
+                        <div class="edu-content">Supporto alla modellazione di sistemi operativi e business strategy per l'alta formazione manageriale.</div>
+                    </div>
+                    <div class="edu-card reveal">
+                        <h3>Administrative & Business Analyst</h3>
+                        <span class="edu-details"><a href="https://sites.google.com/view/scl-srl/home" target="_blank" rel="noopener" style="color:var(--accent);">SCL S.r.l.</a></span>
+                        <div class="edu-content">Reporting economico-finanziario, analisi dei costi e valutazione ex-ante degli investimenti.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ATENA COMPASS -->
+            <div class="dossier-section reveal" id="atena">
+                <span class="section-tag">Metodologia Scientifica Proprietaria</span>
+                <h2 class="h-large">Atena Compass:<br>Bussola Comunitaria.</h2>
+                <p style="max-width: 700px; font-size: 1.05rem; color: var(--text-muted);">
+                    <strong style="color:var(--text-main);">Atena Compass</strong> è un sistema DSS ideato per risolvere il problema della frammentazione decisionale. Attraverso un server dedicato, il sistema gestisce un cruscotto analitico che sintetizza matematicamente le divergenze tra gli stakeholder tramite la logica <strong style="color:var(--text-main);">AHP (Analytic Hierarchy Process)</strong>.
+                </p>
+
+                <div class="mockup-box reveal">
+                    <div class="engine-ui">
+                        <div class="engine-header">
+                            <div class="engine-status">
+                                <div class="engine-dot"></div>
+                                Engine Status: Operational
+                            </div>
+                            <span class="engine-cr">Consistency Ratio CR &lt; 0.10</span>
+                        </div>
+                        <div class="ahp-control">
+                            <div class="ahp-labels"><span>Redditività Economica</span><span>Valore Sociale</span></div>
+                            <div class="ahp-track">
+                                <div class="ahp-fill" style="width:70%;"></div>
+                                <div class="ahp-knob" style="left:calc(70% - 8px);"></div>
+                            </div>
+                        </div>
+                        <div class="ahp-control">
+                            <div class="ahp-labels"><span>Identità Storica</span><span>Resilienza Giovanile</span></div>
+                            <div class="ahp-track">
+                                <div class="ahp-fill" style="width:35%;"></div>
+                                <div class="ahp-knob" style="left:calc(35% - 8px);"></div>
+                            </div>
+                        </div>
+                        <div class="ahp-control">
+                            <div class="ahp-labels"><span>Sostenibilità Ambientale</span><span>Impatto Occupazionale</span></div>
+                            <div class="ahp-track">
+                                <div class="ahp-fill" style="width:55%;"></div>
+                                <div class="ahp-knob" style="left:calc(55% - 8px);"></div>
+                            </div>
+                        </div>
+                        <div class="code-display">
+<pre>// Motore AHP — cruscotto.php
+function getRI($n) {
+  $ri = [3=>0.58, 4=>0.90, 5=>1.12];
+  return $ri[$n] ?? 1.49;
+}
+$CI = ($lambdaMax - $n) / ($n - 1);
+$CR = $CI / getRI($n);
+// CR ≤ 0.10 → Valutazione Coerente ✓</pre>
+                        </div>
+                    </div>
+                    <p class="mockup-caption">"La Bussola di Comunità non elimina il conflitto — lo trasforma in una variabile misurabile per costruire sintesi."</p>
+                </div>
+
+                <button class="btn-cta btn-atena" onclick="navigateTo('page-atena', 1)">
+                    <i class="fas fa-compass"></i>
+                    <span>Esplora il Cruscotto Interattivo</span>
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+
+            <!-- DSI SECTION -->
+            <div class="dossier-section reveal" id="dsi" style="background:#fafaf8;">
+                <span class="section-tag">Territorial Vision</span>
+                <h2 class="h-large">Diano Social Incubator.</h2>
+                <div class="dsi-container">
+                    <p class="dsi-quote">"Non cerchiamo di fermare il tempo, ma di dare un nuovo tempo alle nostre radici, affinché i frutti appartengano a chi decide di restare."</p>
+                    <div class="dsi-item reveal">
+                        <h4>L'Idea & La Visione</h4>
+                        <p>DSI trasforma la <strong>Silver Economy</strong> in motore per l'autoimprenditorialità giovanile, creando un ponte intergenerazionale strutturato.</p>
+                    </div>
+                    <div class="dsi-item reveal">
+                        <h4>Cosa Risolve</h4>
+                        <p>Combatte lo spopolamento fornendo un ecosistema protetto per la nascita di micro-imprese basate sul know-how locale.</p>
+                    </div>
+                    <div class="dsi-item reveal">
+                        <h4>Opportunità</h4>
+                        <p>Hub fisici nel Vallo di Diano dove tradizione e tecnologia (AHP, Blockchain) garantiscono resilienza territoriale.</p>
+                    </div>
+                    <div class="dsi-item reveal">
+                        <h4>Criticità</h4>
+                        <p>Mancanza di infrastrutture digitali e resistenza al cambiamento, mitigate attraverso modelli decisionali trasparenti.</p>
+                    </div>
+                </div>
+                <button class="btn-cta btn-dsi" onclick="navigateTo('page-dsi', 1)">
+                    <i class="fas fa-seedling"></i>
+                    <span>Apri il Manifesto Progettuale Completo</span>
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+
+            <!-- PAPERS -->
+            <div class="dossier-section reveal" id="papers">
+                <span class="section-tag">Scientific Background</span>
+                <h2 class="h-large">Produzione Scientifica.</h2>
+                <div class="paper reveal">
+                    <span class="paper-meta">2025 · Procedia Computer Science (Elsevier)</span>
+                    <h4>Optimizing Coffee Supply Chain Transparency through Mobile Application.</h4>
+                </div>
+                <div class="paper reveal">
+                    <span class="paper-meta">2024 · ISM 6th Int. Conference on Industry 4.0 and Smart Manufacturing — Prague</span>
+                    <h4>Conference Participation: Emerging trends in Smart Manufacturing and Industry 4.0.</h4>
+                </div>
+                <div class="paper reveal">
+                    <span class="paper-meta">2024 · ISAHP Conference</span>
+                    <h4>Python-Driven Implementation of the SEESIM Multi-Criteria Model.</h4>
+                </div>
+                <div class="paper reveal">
+                    <span class="paper-meta">2024 · CRC Press (Taylor & Francis)</span>
+                    <h4>Reflections on Metaverse: A New Technology in the Super Smart Society.</h4>
+                </div>
+                <div class="paper reveal">
+                    <span class="paper-meta">2023 · XXVIII Summer School "Francesco Turco" — Genova</span>
+                    <h4>The Role of Sustainability Indicators in Public Administration.</h4>
+                </div>
+                <div class="paper reveal">
+                    <span class="paper-meta">2023 · Applied Sciences (MDPI)</span>
+                    <h4>How Does the Metaverse Shape Education? A Systematic Literature Review.</h4>
+                </div>
+            </div>
+
+            <div class="dossier-footer">
+                <div>
+                    <h2>Gianfranco Iovine</h2>
+                    <p>Analisi delle Decisioni · Sostenibilità · Rigenerazione Territoriale</p>
+                </div>
+                <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                    <button class="btn-cta btn-atena" style="margin-top:0; padding:13px 26px; font-size:0.7rem;" onclick="navigateTo('page-atena',1)">
+                        <i class="fas fa-compass"></i><span>Cruscotto</span>
+                    </button>
+                    <button class="btn-cta btn-dsi" style="margin-top:0; padding:13px 26px; font-size:0.7rem;" onclick="navigateTo('page-dsi',1)">
+                        <i class="fas fa-seedling"></i><span>DSI</span>
+                    </button>
+                </div>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<!-- ============================================================
+     PAGINA 2: DSI MANIFESTO
+============================================================ -->
+<div id="page-dsi" class="page slide-from-right">
+    <div style="user-select:none; -webkit-user-select:none;">
+        <header>
+            <p class="hero-pre">Diano Social Incubator 2026</p>
+            <h1>L'Incontro<br>che Genera<br>Valore.</h1>
+            <p class="hero-sub">Il primo ecosistema territoriale intergenerazionale per la Silver Economy nel Vallo di Diano: dove l'esperienza degli Over 65 diventa il motore dell'autoimprenditorialità per giovani e donne.</p>
+        </header>
+
+        <div class="container">
+            <section class="grid">
+                <div>
+                    <span class="section-tag">01. L'Intuizione</span>
+                    <h2>Perché non ci abbiamo<br>pensato prima?</h2>
+                    <p class="lead">Il Vallo di Diano è una fabbrica già pronta. Mancava solo la connessione.</p>
+                    <p>Abbiamo decine di laboratori (le cucine e i forni degli anziani), centinaia di maestri d'opera (gli Over 65) e una forza lavoro incredibile (i giovani). <strong>Diano Social Incubator</strong> è il ponte: usiamo la logistica del pane per entrare nelle case, mappare i talenti e trasformare ogni borgo in un'unità produttiva hi-tech e artigianale.</p>
+                    <p>Non stiamo creando una startup. Stiamo attivando il "Sistema Operativo" dormiente del territorio.</p>
+                </div>
+                <div class="reveal-box">
+                    <span class="pill">Asset-Light</span> <span class="pill">Zero Waste</span> <span class="pill">Generazionale</span>
+                    <p style="font-size:1.3rem; font-style:italic; opacity:0.9; line-height:1.55; margin-top:20px;">"Mentre altri chiedono fondi per costruire nuovi centri sociali che resteranno vuoti, noi chiediamo di attivare le case che sono già piene. Piene di storia, forni e persone."</p>
+                </div>
+            </section>
+
+            <section>
+                <div class="grid">
+                    <div>
+                        <span class="section-tag">02. La Visione</span>
+                        <h2>Sconfiggere l'Abbandono.</h2>
+                        <p class="lead">Non rispondiamo alla nostalgia con la memoria, ma con l'economia generativa.</p>
+                        <p>Il Vallo di Diano custodisce un tesoro invisibile: il capitale umano dei nostri anziani. Il progetto crea un <strong>Incubatore Diffuso</strong> che trasforma borghi e case in Academy operative.</p>
+                    </div>
+                    <div style="background:var(--accent); min-height:300px; padding:44px; color:white; display:flex; align-items:center; border-radius:4px;">
+                        <p style="font-size:clamp(1.4rem,2.5vw,1.9rem); font-family:'Cormorant Garamond',serif; font-style:italic; line-height:1.4; margin:0;">
+                            "Il futuro del territorio non si scrive partendo da ciò che manca, ma riaccendendo la luce su ciò che esiste e attende solo di essere tramandato."
+                        </p>
+                    </div>
+                </div>
+                <div class="objective-grid">
+                    <div class="obj-card"><h3>Empowerment</h3><p>Codificare il "saper fare" dei Senior in asset digitali per le nuove startup locali.</p></div>
+                    <div class="obj-card"><h3>Resilienza</h3><p>Attivare micro-economie circolari che sfruttano forni e botteghe dismesse.</p></div>
+                    <div class="obj-card"><h3>Salute Sociale</h3><p>Contrastare il decadimento cognitivo degli Over 65 attraverso il ruolo di Mentor.</p></div>
+                </div>
+            </section>
+
+            <section class="grid">
+                <div>
+                    <span class="section-tag">03. Metodo Operativo</span>
+                    <div>
+                        <div class="dsi-step"><span class="step-count">01</span><div class="step-content"><h4>Mappatura dei Nodi</h4><p>Identificazione dei "Maestri di Mestiere" e dei loro spazi produttivi per la rete diffusa.</p></div></div>
+                        <div class="dsi-step"><span class="step-count">02</span><div class="step-content"><h4>Incubazione Protetta</h4><p>I giovani apprendono l'arte e la scienza della produzione sotto tutela dei Senior.</p></div></div>
+                        <div class="dsi-step"><span class="step-count">03</span><div class="step-content"><h4>Certificazione di Filiera</h4><p>Ogni prodotto validato scientificamente (CTF) e tracciato digitalmente.</p></div></div>
+                    </div>
+                </div>
+                <div>
+                    <h2>Il Capitale della Fiducia.</h2>
+                    <p>Il progetto si rivolge agli <strong>Over 65</strong> come Mentor attivi, ai <strong>Giovani</strong> che cercano un'alternativa all'emigrazione e alle <strong>Donne</strong> del territorio come perno della nuova logistica di prossimità.</p>
+                    <p>Ogni consegna di pane è un pretesto per un controllo di vicinato, un presidio sanitario e un momento di calore umano.</p>
+                    <p>Abbiamo trasformato il 'bisogno di assistenza' in 'desiderio di produzione'.</p>
+                </div>
+            </section>
+
+            <section>
+                <span class="section-tag">04. L'Algoritmo Sociale</span>
+                <h2>Il Risveglio del Territorio.</h2>
+                <div class="wow-grid">
+                    <div class="wow-card"><h3>Fase 1: La Porta</h3><p>Consegniamo il "Pane della Salute". Entriamo in casa, creiamo fiducia, monitoriamo il benessere in modo non invasivo.</p></div>
+                    <div class="wow-card" style="background:var(--deep); color:white;"><h3>Fase 2: Il Risveglio</h3><p>Mappiamo il talento del senior: sa lavorare il legno? Conosce le erbe? Il database del saper fare si popola organicamente.</p></div>
+                    <div class="wow-card"><h3>Fase 3: L'Impresa</h3><p>Il giovane non è più un fattorino, ma un apprendista. L'anziano non è più un utente, ma un Socio Mentor.</p></div>
+                </div>
+            </section>
+
+            <section class="grid" id="scientific-validation">
+                <div style="background:url('https://images.unsplash.com/photo-1544965850-6f8a66788f9b?auto=format&fit=crop&q=80') center/cover; min-height:480px; border-radius:4px; box-shadow:-14px 14px 0 rgba(197,160,89,0.12);"></div>
+                <div>
+                    <span class="section-tag">05. Direzione Scientifica</span>
+                    <h2>Salute Certificata.</h2>
+                    <p class="lead">L'eccellenza della ricerca al servizio del territorio.</p>
+                    <p>La validazione dei protocolli nutrizionali è affidata alla <strong>Dott.ssa Monica Langone</strong>, garante del rigore biochimico di ogni prodotto del DSI.</p>
+                    <div style="background:rgba(197,160,89,0.05); padding:26px; border-left:2px solid var(--accent); margin:22px 0; border-radius:0 8px 8px 0;">
+                        <h4 style="text-transform:uppercase; font-size:0.78rem; letter-spacing:1px; color:var(--deep); margin-bottom:12px;">Profilo: Dott.ssa Monica Langone</h4>
+                        <ul style="list-style:none; font-size:0.9rem; line-height:1.7;">
+                            <li style="margin-bottom:8px;"><strong>• Laurea CTF:</strong> Specializzazione in biochimica degli alimenti e analisi dei componenti bioattivi.</li>
+                            <li style="margin-bottom:8px;"><strong>• Nutrizione Funzionale:</strong> Prevenzione delle patologie metaboliche attraverso alimenti a basso indice glicemico.</li>
+                            <li><strong>• Direzione Tecnica:</strong> Supervisione di grani antichi e protocolli di fermentazione naturale (Lievito Madre).</li>
+                        </ul>
+                    </div>
+                    <div style="margin-top:28px;">
+                        <span class="pill">CTF Validation</span> <span class="pill">Lievito Madre</span> <span class="pill">Silver-Targeted</span>
+                    </div>
+                </div>
+            </section>
+
+            <div class="pilot-section">
+                <span class="pilot-tag">FOCUS: PROGETTO PILOTA</span>
+                <div class="grid" style="gap:44px; margin-top:28px;">
+                    <div>
+                        <h2>Panificazione Funzionale:<br>Il Pane come Relazione.</h2>
+                        <p>Il pilota trasforma il pane in uno strumento di salute, distribuito tramite abbonamento "Diano Care".</p>
+                        <p style="background:rgba(197,160,89,0.12); border-left:3px solid var(--accent); padding:22px; margin-top:24px; color:white;">
+                            <strong>Integrazione:</strong> La logistica di prossimità permette un monitoraggio costante che nessun servizio sanitario pubblico riesce a garantire con la stessa capillarità.
+                        </p>
+                    </div>
+                    <ul class="pilot-list">
+                        <li>Validazione biochimica e nutrizionale</li>
+                        <li>Riuso di forni storici certificati HACCP</li>
+                        <li>Modello di abbonamento mensile ricorsivo</li>
+                        <li>Monitoraggio sociale ad ogni consegna</li>
+                        <li>Sperimentazione di nuovi mestieri artigiani</li>
+                        <li>Certificazione di filiera corta digitale</li>
+                    </ul>
+                </div>
+            </div>
+
+        </div>
+
+        <section style="background:var(--deep); color:white; padding:110px 0; margin:0;">
+            <div style="max-width:1150px; margin:0 auto; padding:0 28px;">
+                <div style="text-align:center; margin-bottom:80px;">
+                    <span style="color:var(--accent); font-size:0.75rem; font-weight:800; text-transform:uppercase; letter-spacing:4px;">Strategia d'Evoluzione</span>
+                    <h2 style="color:white; font-size:clamp(2.2rem,4vw,3.5rem); margin-top:12px; text-align:center; font-family:'Cormorant Garamond',serif;">L'Ecosistema DSI Academy</h2>
+                    <div style="width:50px; height:2px; background:var(--accent); margin:24px auto;"></div>
+                    <p style="max-width:800px; margin:0 auto; font-size:1.1rem; line-height:1.75; opacity:0.75; font-weight:300; text-align:center;">Il DSI non è un servizio assistenziale: è un <strong>motore economico circolare</strong> che trasforma il Vallo di Diano in un polo d'eccellenza per l'autoimprenditorialità.</p>
+                </div>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:50px;">
+                    <div style="border-top:1px solid rgba(197,160,89,0.25); padding-top:28px;">
+                        <span style="font-size:0.72rem; font-weight:800; color:var(--accent); text-transform:uppercase;">Atto I: L'Ingresso</span>
+                        <h3 style="font-family:'Cormorant Garamond',serif; font-size:2rem; margin:12px 0;">Il Pane della Salute</h3>
+                        <p style="opacity:0.65; line-height:1.75; font-size:0.95rem;">Usiamo la logistica del pane per rompere l'isolamento degli Over 65 e mappare i talenti nascosti nelle case del Vallo.</p>
+                        <div style="margin-top:auto; padding-top:20px; font-size:0.72rem; font-weight:700; color:var(--accent); letter-spacing:1px;">✓ MAPPATURA TALENTI</div>
+                    </div>
+                    <div style="border-top:2px solid var(--accent); padding-top:28px;">
+                        <span style="font-size:0.72rem; font-weight:800; color:var(--accent); text-transform:uppercase;">Atto II: La Formazione</span>
+                        <h3 style="font-family:'Cormorant Garamond',serif; font-size:2rem; margin:12px 0;">DSI Academy</h3>
+                        <p style="opacity:0.65; line-height:1.75; font-size:0.95rem;">L'anziano diventa <strong>Mentor Certificato</strong>. Le competenze artigiane vengono codificate e insegnate a giovani e donne.</p>
+                        <div style="margin-top:auto; padding-top:20px; font-size:0.72rem; font-weight:700; color:var(--accent); letter-spacing:1px;">✓ TRASFERIMENTO KNOW-HOW</div>
+                    </div>
+                    <div style="border-top:1px solid rgba(197,160,89,0.25); padding-top:28px;">
+                        <span style="font-size:0.72rem; font-weight:800; color:var(--accent); text-transform:uppercase;">Atto III: L'Impresa</span>
+                        <h3 style="font-family:'Cormorant Garamond',serif; font-size:2rem; margin:12px 0;">Hub Startup</h3>
+                        <p style="opacity:0.65; line-height:1.75; font-size:0.95rem;">Il DSI funge da <strong>Hub di Autoimprenditorialità</strong>, lanciando startup locali che operano sui mercati globali.</p>
+                        <div style="margin-top:auto; padding-top:20px; font-size:0.72rem; font-weight:700; color:var(--accent); letter-spacing:1px;">✓ NASCITA MICRO-IMPRESE</div>
+                    </div>
+                </div>
+                <div style="margin-top:80px; padding:50px; background:rgba(255,255,255,0.02); border:1px solid rgba(197,160,89,0.1); text-align:center;">
+                    <h4 style="font-family:'Cormorant Garamond',serif; font-size:2.2rem; font-style:italic; color:var(--accent); margin-bottom:16px;">Restanza come Avanguardia</h4>
+                    <p style="font-size:1rem; max-width:700px; margin:0 auto; line-height:1.8; font-weight:300; opacity:0.85; text-align:center;">Non stiamo solo conservando il passato; stiamo brevettando un modello di vita che trasforma la marginalità in un vantaggio competitivo. <strong>Il Vallo di Diano non è più la periferia, ma il centro di una nuova economia civile.</strong></p>
+                </div>
+            </div>
+        </section>
+
+        <div class="container">
+            <section style="text-align:center; border-bottom:none; padding:100px 0;">
+                <p style="font-family:'Cormorant Garamond',serif; font-size:clamp(1.8rem,4vw,3.2rem); line-height:1.35; font-style:italic; color:var(--deep); max-width:860px; margin:0 auto;">
+                    "Non cerchiamo di fermare il tempo, ma di dare un nuovo tempo alle nostre radici, affinché i frutti appartengano a chi decide di restare."
+                </p>
+            </section>
+        </div>
+
+        <footer>
+            <div class="container">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:40px; align-items:end;">
+                    <div>
+                        <span style="color:var(--accent); font-weight:800; font-size:0.72rem; text-transform:uppercase; letter-spacing:2px;">Ideatore e Coordinatore Generale</span>
+                        <p class="signature-name">Gianfranco Iovine</p>
+                        <div class="legal-notice">
+                            © 2026 GIANFRANCO IOVINE. TUTTI I DIRITTI RISERVATI.<br>
+                            OPERA DELL'INGEGNO PROTETTA DAL DIRITTO D'AUTORE.<br>
+                            MODELLO DSI: PROTOCOLLO DEPOSITATO.
+                        </div>
+                    </div>
+                    <div style="text-align:right;">
+                        <p style="font-weight:800; color:var(--accent); margin-bottom:8px; letter-spacing:2px; text-transform:uppercase; font-size:0.82rem;">Vallo di Diano, 2026</p>
+                        <p style="font-size:0.9rem; opacity:0.6; max-width:320px; text-align:right; margin-left:auto;">Garante della visione e della coerenza scientifica del sistema intergenerazionale.</p>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+</div>
+
+<!-- ============================================================
+     PAGINA 3: CRUSCOTTO ATENA
+============================================================ -->
+<div id="page-atena" class="page slide-from-right">
+    <div id="atena-app">
+
+        <aside id="atena-sidebar">
+            <div class="atena-brand">
+                <div class="atena-logo-ring"><i class="fas fa-compass"></i></div>
+                <h2>Atena <span>Compass</span></h2>
+                <p class="atena-subtitle">Bussola Decisionale AHP</p>
+            </div>
+            <nav class="atena-nav">
+                <button class="atena-nav-btn a-active" onclick="showAtenaSection('wizard')"><i class="fas fa-sliders-h"></i> Valutazione</button>
+                <button class="atena-nav-btn" onclick="showAtenaSection('results')"><i class="fas fa-chart-pie"></i> Risultati</button>
+                <button class="atena-nav-btn" onclick="showAtenaSection('registro')"><i class="fas fa-database"></i> Registro</button>
+            </nav>
+            <div class="atena-method-box">
+                <span class="atena-method-tag">Metodologia</span>
+                <p>Analytic Hierarchy Process (Saaty, 1980) + Entropia di Shannon per l'indice di consenso.</p>
+                <div class="atena-cr-badge" id="sidebar-cr">CR: —</div>
+            </div>
+            <div class="atena-status">
+                <div class="status-dot" id="status-dot"></div>
+                <span id="status-text">In attesa di valutazione</span>
+            </div>
+        </aside>
+
+        <main id="atena-main">
+            <div id="atena-progress-wrap"><div id="atena-progress-bar"></div></div>
+
+            <!-- WIZARD -->
+            <div id="section-wizard" class="atena-section a-active-section">
+                <div class="atena-step a-active-step" id="step-0">
+                    <div class="atena-step-header">
+                        <span class="step-label">Fase 0 / 4</span>
+                        <h2>Accreditamento Stakeholder</h2>
+                        <p>Identifica il partecipante per avviare la valutazione comparativa.</p>
+                    </div>
+                    <div class="atena-form-group">
+                        <label>Identificativo</label>
+                        <input type="text" id="input-stakeholder" placeholder="Nome o Ente di riferimento" class="atena-input">
+                    </div>
+                    <div class="atena-form-group">
+                        <label>Categoria</label>
+                        <div class="role-grid">
+                            <div class="role-card a-active-role" data-role="Cittadino" onclick="selectRole(this)"><i class="fas fa-user"></i><span>Cittadino</span></div>
+                            <div class="role-card" data-role="Amministratore" onclick="selectRole(this)"><i class="fas fa-landmark"></i><span>Amministratore</span></div>
+                            <div class="role-card" data-role="Operatore Economico" onclick="selectRole(this)"><i class="fas fa-briefcase"></i><span>Operatore</span></div>
+                            <div class="role-card" data-role="Tecnico" onclick="selectRole(this)"><i class="fas fa-cogs"></i><span>Tecnico</span></div>
+                        </div>
+                    </div>
+                    <div class="atena-btn-row"><div></div><button class="atena-btn-next" onclick="atenaMove(1)">Procedi <i class="fas fa-arrow-right"></i></button></div>
+                </div>
+
+                <div class="atena-step" id="step-1">
+                    <div class="atena-step-header"><span class="step-label">Fase 1 / 4 — Priorità Strategiche</span><h2>Confronto Criteri <span style="color:var(--accent);">1/3</span></h2><p>Quale criterio guida maggiormente la tua visione per Atena Lucana?</p></div>
+                    <div class="vs-arena"><div class="vs-label left" id="criteri-left-0"></div><div class="vs-center"><div class="vs-badge-big">VS</div></div><div class="vs-label right" id="criteri-right-0"></div></div>
+                    <div class="slider-zone">
+                        <div class="slider-scale"><span>9—7—5—3</span><span>Uguale</span><span>3—5—7—9</span></div>
+                        <input type="range" class="atena-slider" id="slider-c-0" min="-8" max="8" value="0" oninput="updateSliderUI('c',0)">
+                        <div class="slider-feedback" id="feedback-c-0">Uguale Importanza</div>
+                    </div>
+                    <div class="atena-btn-row"><button class="atena-btn-prev" onclick="atenaMove(-1)"><i class="fas fa-arrow-left"></i> Indietro</button><button class="atena-btn-next" onclick="atenaMove(1)">Avanti <i class="fas fa-arrow-right"></i></button></div>
+                </div>
+
+                <div class="atena-step" id="step-2">
+                    <div class="atena-step-header"><span class="step-label">Fase 1 / 4 — Priorità Strategiche</span><h2>Confronto Criteri <span style="color:var(--accent);">2/3</span></h2></div>
+                    <div class="vs-arena"><div class="vs-label left" id="criteri-left-1"></div><div class="vs-center"><div class="vs-badge-big">VS</div></div><div class="vs-label right" id="criteri-right-1"></div></div>
+                    <div class="slider-zone">
+                        <div class="slider-scale"><span>9—7—5—3</span><span>Uguale</span><span>3—5—7—9</span></div>
+                        <input type="range" class="atena-slider" id="slider-c-1" min="-8" max="8" value="0" oninput="updateSliderUI('c',1)">
+                        <div class="slider-feedback" id="feedback-c-1">Uguale Importanza</div>
+                    </div>
+                    <div class="atena-btn-row"><button class="atena-btn-prev" onclick="atenaMove(-1)"><i class="fas fa-arrow-left"></i> Indietro</button><button class="atena-btn-next" onclick="atenaMove(1)">Avanti <i class="fas fa-arrow-right"></i></button></div>
+                </div>
+
+                <div class="atena-step" id="step-3">
+                    <div class="atena-step-header"><span class="step-label">Fase 1 / 4 — Priorità Strategiche</span><h2>Confronto Criteri <span style="color:var(--accent);">3/3</span></h2></div>
+                    <div class="vs-arena"><div class="vs-label left" id="criteri-left-2"></div><div class="vs-center"><div class="vs-badge-big">VS</div></div><div class="vs-label right" id="criteri-right-2"></div></div>
+                    <div class="slider-zone">
+                        <div class="slider-scale"><span>9—7—5—3</span><span>Uguale</span><span>3—5—7—9</span></div>
+                        <input type="range" class="atena-slider" id="slider-c-2" min="-8" max="8" value="0" oninput="updateSliderUI('c',2)">
+                        <div class="slider-feedback" id="feedback-c-2">Uguale Importanza</div>
+                    </div>
+                    <div class="atena-btn-row"><button class="atena-btn-prev" onclick="atenaMove(-1)"><i class="fas fa-arrow-left"></i> Indietro</button><button class="atena-btn-next" onclick="atenaMove(1)">Avanti <i class="fas fa-arrow-right"></i></button></div>
+                </div>
+
+                <div class="atena-step" id="step-4">
+                    <div class="atena-step-header"><span class="step-label">Fase 2 / 4 — Scenario A</span><h2>Performance Scenari</h2><p>Rispetto a: <strong id="context-c0" style="color:var(--accent);"></strong></p></div>
+                    <div class="vs-arena"><div class="vs-label left">Conservazione Storica</div><div class="vs-center"><div class="vs-badge-big">VS</div></div><div class="vs-label right">Riqualificazione Moderna</div></div>
+                    <div class="slider-zone">
+                        <div class="slider-scale"><span>9—7—5—3</span><span>Uguale</span><span>3—5—7—9</span></div>
+                        <input type="range" class="atena-slider" id="slider-a-0" min="-8" max="8" value="0" oninput="updateSliderUI('a',0)">
+                        <div class="slider-feedback" id="feedback-a-0">Equivalenti</div>
+                    </div>
+                    <div class="atena-btn-row"><button class="atena-btn-prev" onclick="atenaMove(-1)"><i class="fas fa-arrow-left"></i> Indietro</button><button class="atena-btn-next" onclick="atenaMove(1)">Avanti <i class="fas fa-arrow-right"></i></button></div>
+                </div>
+
+                <div class="atena-step" id="step-5">
+                    <div class="atena-step-header"><span class="step-label">Fase 3 / 4 — Scenario B</span><h2>Performance Scenari</h2><p>Rispetto a: <strong id="context-c1" style="color:var(--accent);"></strong></p></div>
+                    <div class="vs-arena"><div class="vs-label left">Conservazione Storica</div><div class="vs-center"><div class="vs-badge-big">VS</div></div><div class="vs-label right">Riqualificazione Moderna</div></div>
+                    <div class="slider-zone">
+                        <div class="slider-scale"><span>9—7—5—3</span><span>Uguale</span><span>3—5—7—9</span></div>
+                        <input type="range" class="atena-slider" id="slider-a-1" min="-8" max="8" value="0" oninput="updateSliderUI('a',1)">
+                        <div class="slider-feedback" id="feedback-a-1">Equivalenti</div>
+                    </div>
+                    <div class="atena-btn-row"><button class="atena-btn-prev" onclick="atenaMove(-1)"><i class="fas fa-arrow-left"></i> Indietro</button><button class="atena-btn-next" onclick="atenaMove(1)">Avanti <i class="fas fa-arrow-right"></i></button></div>
+                </div>
+
+                <div class="atena-step" id="step-6">
+                    <div class="atena-step-header"><span class="step-label">Fase 4 / 4 — Scenario C</span><h2>Performance Scenari</h2><p>Rispetto a: <strong id="context-c2" style="color:var(--accent);"></strong></p></div>
+                    <div class="vs-arena"><div class="vs-label left">Conservazione Storica</div><div class="vs-center"><div class="vs-badge-big">VS</div></div><div class="vs-label right">Riqualificazione Moderna</div></div>
+                    <div class="slider-zone">
+                        <div class="slider-scale"><span>9—7—5—3</span><span>Uguale</span><span>3—5—7—9</span></div>
+                        <input type="range" class="atena-slider" id="slider-a-2" min="-8" max="8" value="0" oninput="updateSliderUI('a',2)">
+                        <div class="slider-feedback" id="feedback-a-2">Equivalenti</div>
+                    </div>
+                    <div class="atena-btn-row"><button class="atena-btn-prev" onclick="atenaMove(-1)"><i class="fas fa-arrow-left"></i> Indietro</button><button class="atena-btn-next" onclick="atenaMove(1)">Calcola <i class="fas fa-calculator"></i></button></div>
+                </div>
+
+                <div class="atena-step" id="step-7">
+                    <div style="text-align:center; padding:40px 20px;">
+                        <div class="confirm-icon"><i class="fas fa-check-circle"></i></div>
+                        <h2 style="font-family:'Playfair Display',serif; color:var(--primary); margin-bottom:12px;">Valutazione Acquisita</h2>
+                        <p style="color:#888;">I dati sono stati elaborati dal motore AHP. Consulta i risultati.</p>
+                        <div class="atena-btn-row" style="justify-content:center; gap:16px; margin-top:28px;">
+                            <button class="atena-btn-prev" onclick="resetAtena()"><i class="fas fa-redo"></i> Nuova</button>
+                            <button class="atena-btn-next" onclick="showAtenaSection('results')">Vedi Risultati <i class="fas fa-chart-pie"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RISULTATI -->
+            <div id="section-results" class="atena-section">
+                <div class="results-header">
+                    <h2><i class="fas fa-chart-pie" style="color:var(--accent); font-size:1.4rem;"></i> Dashboard Decisionale</h2>
+                    <p>Sintesi AHP aggregata in tempo reale</p>
+                </div>
+                <div class="results-stats">
+                    <div class="rstat-card"><span class="rstat-label">Partecipazioni</span><span class="rstat-val" id="stat-count">0</span></div>
+                    <div class="rstat-card"><span class="rstat-label">CR Medio</span><span class="rstat-val" id="stat-cr">—</span></div>
+                    <div class="rstat-card"><span class="rstat-label">Consenso Shannon</span><span class="rstat-val" id="stat-shannon">—</span></div>
+                </div>
+                <div class="results-grid">
+                    <div class="res-card"><h4><i class="fas fa-bullseye"></i> Scenario Preferito</h4><canvas id="chartDoughnut" height="220"></canvas></div>
+                    <div class="res-card"><h4><i class="fas fa-project-diagram"></i> Pesi dei Criteri</h4><canvas id="chartRadar" height="220"></canvas></div>
+                </div>
+                <div class="res-card" style="margin-top:16px;">
+                    <h4><i class="fas fa-lightbulb" style="color:var(--accent);"></i> Interpretazione Algoritmica</h4>
+                    <div id="interpretation-box" class="interp-box"><p>Completa almeno una valutazione per generare l'interpretazione.</p></div>
+                </div>
+            </div>
+
+            <!-- REGISTRO -->
+            <div id="section-registro" class="atena-section">
+                <div class="results-header">
+                    <h2><i class="fas fa-database" style="color:var(--accent); font-size:1.4rem;"></i> Registro Audit</h2>
+                    <p>Log delle valutazioni della sessione corrente</p>
+                </div>
+                <div class="registro-table-wrap">
+                    <table class="registro-table">
+                        <thead><tr><th>Stakeholder</th><th>Categoria</th><th>Timestamp</th><th>CR</th><th>Preferenza</th></tr></thead>
+                        <tbody id="registro-tbody">
+                            <tr><td colspan="5" style="text-align:center; opacity:0.4; padding:28px; font-size:0.88rem;">Nessun dato — avvia una valutazione.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div style="text-align:center; margin-top:20px;">
+                    <button class="atena-btn-prev" onclick="resetAtena()"><i class="fas fa-trash-alt"></i> Svuota Sessione</button>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+
+<!-- ============================================================
+     PAGINA 4: SCL SRL
+============================================================ -->
+<div id="page-scl" class="page slide-from-right">
+<style>
+/* SCL — variabili e reset scoped */
+#page-scl {
+    --scl-dark: #121212;
+    --scl-chestnut: #3d2b1f;
+    --scl-gold: #c5a47e;
+    --scl-paper: #fdfaf6;
+    --scl-accent: #8d6e63;
+    background: var(--scl-paper);
+    font-family: 'Montserrat', sans-serif;
+    color: var(--scl-dark);
+    line-height: 1.8;
+    overflow-x: hidden;
+}
+#page-scl * { box-sizing: border-box; }
+ 
+/* Hero */
+#page-scl .scl-hero {
+    height: 100vh;
+    background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)),
+        url('https://images.pexels.com/photos/167698/pexels-photo-167698.jpeg?auto=compress&cs=tinysrgb&w=1260') center/cover no-repeat fixed;
+    display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; color: white;
+}
+#page-scl .scl-hero h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(3.5rem, 10vw, 7rem);
+    font-weight: 600; line-height: 1;
+}
+#page-scl .scl-hero p {
+    letter-spacing: 8px; text-transform: uppercase;
+    font-size: 0.9rem; margin-top: 20px; color: var(--scl-gold);
+}
+ 
+/* Layout */
+#page-scl .scl-container { width: 85%; max-width: 1300px; margin: auto; }
+#page-scl .scl-section { padding: 120px 0; border-bottom: 1px solid rgba(0,0,0,0.05); }
+#page-scl .scl-grid-layout { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 80px; align-items: center; }
+#page-scl .scl-grid-layout.reverse { direction: rtl; }
+#page-scl .scl-grid-layout.reverse .scl-content { direction: ltr; }
+ 
+/* Tipografia */
+#page-scl .scl-subtitle {
+    color: var(--scl-accent); font-weight: 600; letter-spacing: 3px;
+    text-transform: uppercase; font-size: 0.8rem; display: block; margin-bottom: 15px;
+}
+#page-scl .scl-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1.1;
+    margin-bottom: 30px; color: var(--scl-chestnut);
+}
+#page-scl .scl-text {
+    font-size: 1.05rem; color: #333; font-weight: 300;
+    text-align: justify; margin-bottom: 20px;
+}
+ 
+/* Immagini */
+#page-scl .scl-img-box {
+    position: relative; height: 550px; background: #e0d8cf;
+    overflow: hidden; border-radius: 2px; box-shadow: 25px 25px 0px var(--scl-gold);
+}
+#page-scl .scl-img-box img { width: 100%; height: 100%; object-fit: cover; filter: sepia(15%) contrast(105%); }
+ 
+/* Prodotti */
+#page-scl .scl-product-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 15px; margin: 40px 0; }
+#page-scl .scl-product-card {
+    background: white; padding: 20px;
+    border-left: 3px solid var(--scl-gold);
+    font-weight: 600; font-size: 0.9rem;
+    box-shadow: 5px 5px 15px rgba(0,0,0,0.03);
+}
+ 
+/* Sezione chi siamo SCL */
+#page-scl .scl-identity {
+    background: var(--scl-chestnut); padding: 120px 0; overflow: hidden; position: relative;
+}
+#page-scl .scl-identity::before {
+    content: "SCL"; position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(12rem, 30vw, 22rem); font-weight: 600;
+    color: rgba(255,255,255,0.04); pointer-events: none;
+    white-space: nowrap; letter-spacing: -0.05em; line-height: 1;
+}
+#page-scl .scl-identity .scl-subtitle { color: var(--scl-gold); }
+#page-scl .scl-identity .scl-title { color: white; }
+#page-scl .scl-identity .scl-text { color: rgba(255,255,255,0.78); }
+#page-scl .scl-divider { width: 60px; height: 2px; background: var(--scl-gold); margin: 40px 0; opacity: 0.6; }
+#page-scl .scl-stat-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 2px; margin-top: 60px; background: rgba(255,255,255,0.06);
+}
+#page-scl .scl-stat {
+    padding: 40px 30px; text-align: center;
+    border-right: 1px solid rgba(255,255,255,0.08);
+}
+#page-scl .scl-stat:last-child { border-right: none; }
+#page-scl .scl-stat-number {
+    font-family: 'Cormorant Garamond', serif; font-size: 4.5rem;
+    font-weight: 600; color: var(--scl-gold); line-height: 1; display: block;
+}
+#page-scl .scl-stat-label {
+    font-size: 0.78rem; letter-spacing: 3px; text-transform: uppercase;
+    color: rgba(255,255,255,0.5); margin-top: 10px; display: block; font-weight: 300;
+}
+#page-scl .scl-values { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 30px; margin-top: 50px; }
+#page-scl .scl-value-item { border-left: 2px solid var(--scl-gold); padding: 10px 20px; }
+#page-scl .scl-value-item strong { display: block; color: var(--scl-gold); font-size: 0.85rem; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+#page-scl .scl-value-item p { color: rgba(255,255,255,0.65); font-size: 0.9rem; font-weight: 300; line-height: 1.6; }
+ 
+/* Partner dark */
+#page-scl .scl-partner-dark { background: var(--scl-dark); color: white; padding: 100px 0; }
+#page-scl .scl-partner-list { list-style: none; margin-top: 40px; }
+#page-scl .scl-partner-list li { margin-bottom: 20px; padding-left: 30px; position: relative; font-weight: 300; }
+#page-scl .scl-partner-list li::before { content: "◈"; position: absolute; left: 0; color: var(--scl-gold); }
+ 
+/* Footer */
+#page-scl .scl-footer { text-align: center; padding: 150px 20px; background: white; }
+#page-scl .scl-footer blockquote {
+    font-family: 'Cormorant Garamond', serif; font-size: 2.5rem;
+    font-style: italic; max-width: 900px; margin: auto; color: var(--scl-chestnut);
+}
+ 
+/* Mobile */
+@media (max-width: 1024px) {
+    #page-scl .scl-grid-layout { grid-template-columns: 1fr; gap: 50px; }
+    #page-scl .scl-grid-layout.reverse { direction: ltr; }
+    #page-scl .scl-img-box { height: 400px; box-shadow: 15px 15px 0px var(--scl-gold); }
+}
+@media (max-width: 768px) {
+    #page-scl .scl-container { width: 92%; }
+    #page-scl .scl-section { padding: 70px 0; }
+    #page-scl .scl-img-box { height: 280px; box-shadow: 10px 10px 0px var(--scl-gold); }
+    #page-scl .scl-product-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    #page-scl .scl-product-card { font-size: 0.82rem; padding: 15px; }
+    #page-scl .scl-partner-dark { padding: 70px 0; }
+    #page-scl .scl-footer { padding: 80px 20px; }
+    #page-scl .scl-footer blockquote { font-size: 1.7rem; }
+    #page-scl .scl-stat-grid { grid-template-columns: 1fr; }
+    #page-scl .scl-stat { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.08); }
+}
+@media (max-width: 480px) {
+    #page-scl .scl-product-grid { grid-template-columns: 1fr; }
+    #page-scl .scl-img-box { height: 240px; }
+    #page-scl .scl-footer blockquote { font-size: 1.4rem; }
+}
+</style>
+ 
+<!-- HERO -->
+<header class="scl-hero">
+    <h1>SCL srl</h1>
+    <p>L'Identità del Castagno • Padula Scalo</p>
+</header>
+ 
+<!-- IDENTITÀ AZIENDALE -->
+<div class="scl-container">
+    <section class="scl-section">
+        <div class="scl-grid-layout">
+            <div class="scl-content">
+                <span class="scl-subtitle">Radici e Visione</span>
+                <h2 class="scl-title">Identità Aziendale</h2>
+                <p class="scl-text">SCL srl opera a <strong>Padula Scalo (SA)</strong>, nel cuore del Vallo di Diano. L'azienda nasce dall'unione di tecnici con oltre vent'anni di esperienza nel settore del legno, con l'obiettivo di valorizzare competenze specialistiche nella lavorazione del castagno.</p>
+                <p class="scl-text">Non una semplice attività commerciale, ma un <b>laboratorio specializzato</b> che segue l'intero ciclo produttivo: dalla trave grezza fino alla piallatura e all'impregnatura con prodotti ecologici certificati.</p>
+            </div>
+            <div class="scl-img-box">
+                <img src="https://lh3.googleusercontent.com/p/AF1QipOgy-qutNiZWvwHX94rGqqEszejNiVAUE57vecx=s1360-w1360-h1020-rw" alt="Anelli di crescita tronco castagno">
+            </div>
+        </div>
+    </section>
+</div>
+ 
+<!-- SPECIALIZZAZIONE TECNICA -->
+<div class="scl-container">
+    <section class="scl-section">
+        <div class="scl-grid-layout reverse">
+            <div class="scl-content">
+                <span class="scl-subtitle">Eccellenza Materica</span>
+                <h2 class="scl-title">Specializzazione Tecnica</h2>
+                <p class="scl-text">Il castagno rappresenta il materiale identitario della nostra attività. Storicamente utilizzato nell'architettura rurale e nei borghi dell'area interna campana, è resistente, naturalmente durevole e particolarmente adatto a strutture portanti e interventi conservativi.</p>
+                <div class="scl-product-grid">
+                    <div class="scl-product-card">Travi uso fiume</div>
+                    <div class="scl-product-card">Perlinati e intavolati</div>
+                    <div class="scl-product-card">Morali strutturali</div>
+                    <div class="scl-product-card">Paleria per recinzioni</div>
+                    <div class="scl-product-card">Travicelli per recupero</div>
+                    <div class="scl-product-card">Ingegneria naturalistica</div>
+                </div>
+                <p class="scl-text" style="margin-top:20px;">Collaboriamo con imprese e studi tecnici impegnati nel recupero di edifici storici, contribuendo alla tutela del patrimonio edilizio attraverso materiali coerenti con le tecniche tradizionali.</p>
+            </div>
+            <div class="scl-img-box">
+                <img src="https://www.segheriavallesacra.it/public/images/_MG_5228.JPG_20180108125716.jpg" alt="Lavorazione travi di castagno">
+            </div>
+        </div>
+    </section>
+</div>
+ 
+<!-- TERRITORIO -->
+<div class="scl-container">
+    <section class="scl-section">
+        <div class="scl-grid-layout">
+            <div class="scl-content">
+                <span class="scl-subtitle">Geografia del Valore</span>
+                <h2 class="scl-title">Legame con il Territorio</h2>
+                <p class="scl-text">Il legame con il <strong>Vallo di Diano</strong> non è esclusivamente geografico: è economico, culturale e operativo. Operare localmente significa valorizzare la filiera corta del legno, ridurre l'impatto logistico e collaborare con le realtà del territorio.</p>
+                <p class="scl-text">In un contesto di valorizzazione delle risorse locali, SCL srl rappresenta un soggetto produttivo coerente, integrando tradizione artigianale, qualità tecnica e radicamento territoriale.</p>
+            </div>
+            <div class="scl-img-box">
+                <img src="https://lh3.googleusercontent.com/p/AF1QipO2hQ2G_QDAP3RA8iUKqO6QSt5SmcfzkxlK5APa=s1360-w1360-h1020-rw" alt="Bosco di castagno campano">
+            </div>
+        </div>
+    </section>
+</div>
+ 
+<!-- CHI SIAMO — SCL IDENTITY -->
+<section class="scl-identity">
+    <div class="scl-container">
+        <span class="scl-subtitle">La Nostra Storia</span>
+        <h2 class="scl-title">SCL srl</h2>
+        <div class="scl-divider"></div>
+        <p class="scl-text" style="max-width:680px;">SCL srl nasce a <strong style="color:var(--scl-gold);">Padula Scalo</strong>, nel cuore del Vallo di Diano, dall'unione di competenze tecniche consolidate e da una visione chiara: rendere il castagno campano un materiale d'eccellenza riconosciuto a scala nazionale. Dietro ogni trave lavorata c'è un sapere antico, affinato nel tempo da artigiani del legno.</p>
+        <div class="scl-stat-grid">
+            <div class="scl-stat"><span class="scl-stat-number">20+</span><span class="scl-stat-label">Anni di esperienza</span></div>
+            <div class="scl-stat"><span class="scl-stat-number">100%</span><span class="scl-stat-label">Filiera locale</span></div>
+            <div class="scl-stat"><span class="scl-stat-number">∞</span><span class="scl-stat-label">Cura artigianale</span></div>
+        </div>
+        <div class="scl-values">
+            <div class="scl-value-item"><strong>Origine</strong><p>Radicati nel Vallo di Diano, utilizziamo castagno proveniente dai boschi campani, garantendo tracciabilità e filiera corta.</p></div>
+            <div class="scl-value-item"><strong>Processo</strong><p>Dal tronco grezzo alla trave finita: segagione, stagionatura, piallatura e impregnatura con prodotti ecologici certificati.</p></div>
+            <div class="scl-value-item"><strong>Visione</strong><p>Essere il riferimento tecnico per il restauro e la riqualificazione del patrimonio edilizio storico delle aree interne del Sud Italia.</p></div>
+        </div>
+    </div>
+</section>
+ 
+<!-- PARTNER & IMPATTO -->
+<section class="scl-partner-dark">
+    <div class="scl-container">
+        <div class="scl-grid-layout">
+            <div class="scl-content">
+                <span class="scl-subtitle" style="color:var(--scl-gold);">Sinergia Strategica</span>
+                <h2 class="scl-title" style="color:white;">Valore Aggiunto come Partner</h2>
+                <ul class="scl-partner-list">
+                    <li>Supporto tecnico nella definizione delle soluzioni in castagno</li>
+                    <li>Flessibilità produttiva e personalizzazione su misura</li>
+                    <li>Coerenza con interventi di restauro e riqualificazione</li>
+                    <li>Disponibilità alla collaborazione in reti territoriali</li>
+                    <li>Integrazione tra sostenibilità ambientale e sviluppo economico</li>
+                </ul>
+            </div>
+            <div class="scl-content">
+                <span class="scl-subtitle" style="color:var(--scl-gold);">Sviluppo Futuro</span>
+                <h2 class="scl-title" style="color:white;">Impatto Socio-Economico</h2>
+                <p class="scl-text" style="color:rgba(255,255,255,0.8);">Sostenere SCL srl significa rafforzare una filiera locale legata a un materiale identitario. Promuoviamo occupazione, competenze nelle aree interne e utilizzo di materiali naturali. La nostra visione mira alla riqualificazione dei borghi e al consolidamento di una rete produttiva qualificata.</p>
+            </div>
+        </div>
+    </div>
+</section>
+ 
+<!-- FOOTER SCL -->
+<footer class="scl-footer">
+    <div class="scl-container">
+        <blockquote>"Il castagno non è solo un prodotto. È continuità tra tradizione costruttiva e sviluppo sostenibile del territorio."</blockquote>
+        <p style="letter-spacing:5px; color:var(--scl-gold); margin-top:40px; font-weight:600;">SCL SRL — PADULA SCALO (SA)</p>
+    </div>
+</footer>
+ 
+</div><!-- fine page-scl -->
+ 
+</div><!-- fine page-viewport -->
+
+
+
+
+<!-- ============================================================
+     JAVASCRIPT
+============================================================ -->
+<script>
+/* ============================================================
+   SISTEMA NAVIGAZIONE GLOBALE con slide direzionale
+============================================================ */
+const PAGE_ORDER = ['page-dossier', 'page-atena', 'page-dsi'];
+const PAGE_LABELS = {
+    'page-dossier': 'Dossier Strategico',
+    'page-atena':   'Atena Compass · Demo',
+    'page-dsi':     'DSI Manifesto'
+};
+const NAV_BTN_IDS = {
+    'page-dossier': 'gnav-btn-dossier',
+    'page-atena':   'gnav-btn-atena',
+    'page-dsi':     'gnav-btn-dsi'
+};
+
+let currentPageId = 'page-dossier';
+
+function navigateTo(targetId, _dir) {
+    if (targetId === currentPageId) return;
+
+    const fromPage = document.getElementById(currentPageId);
+    const toPage   = document.getElementById(targetId);
+    if (!fromPage || !toPage) return;
+
+    const fromIdx = PAGE_ORDER.indexOf(currentPageId);
+    const toIdx   = PAGE_ORDER.indexOf(targetId);
+    const goRight = toIdx > fromIdx; // avanzamento → slide right
+
+    // 1. Prepara la pagina destinazione (arriva da destra o sinistra)
+    toPage.classList.remove('slide-from-right','slide-from-left','slide-to-left','slide-to-right','page-active');
+    toPage.style.display = 'block';
+    // forza reflow
+    toPage.getBoundingClientRect();
+    toPage.classList.add(goRight ? 'slide-from-right' : 'slide-from-left');
+
+    // 2. Piccolo delay per avviare la transizione
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            // Esce la pagina corrente
+            fromPage.classList.add(goRight ? 'slide-to-left' : 'slide-to-right');
+            fromPage.classList.remove('page-active');
+
+            // Entra la nuova
+            toPage.classList.remove('slide-from-right','slide-from-left');
+            toPage.classList.add('page-active');
+
+            // Scroll to top della pagina destinazione
+            toPage.scrollTop = 0;
+        });
+    });
+
+    // 3. Cleanup dopo transizione
+    setTimeout(() => {
+        fromPage.classList.remove('slide-to-left','slide-to-right','page-active');
+        fromPage.style.display = '';
+    }, 620);
+
+    // 4. Aggiorna nav
+    currentPageId = targetId;
+    updateGlobalNav(targetId);
+
+    // 5. Init scroll reveal sulla nuova pagina
+    setTimeout(() => initReveal(), 100);
+}
+
+function updateGlobalNav(activeId) {
+    // Rimuovi active da tutti
+    Object.values(NAV_BTN_IDS).forEach(id => {
+        document.getElementById(id)?.classList.remove('gnav-active');
+    });
+    // Aggiungi active al corrente
+    document.getElementById(NAV_BTN_IDS[activeId])?.classList.add('gnav-active');
+    // Aggiorna crumb
+    const crumb = document.getElementById('gnav-crumb');
+    if (crumb) crumb.textContent = PAGE_LABELS[activeId] || '';
+}
+
+/* ============================================================
+   SCROLL REVEAL (IntersectionObserver)
+============================================================ */
+let revealObserver;
+function initReveal() {
+    if (revealObserver) revealObserver.disconnect();
+    const els = document.querySelectorAll('.page-active .reveal');
+    revealObserver = new IntersectionObserver((entries) => {
+        entries.forEach(e => {
+            if (e.isIntersecting) {
+                e.target.classList.add('revealed');
+                revealObserver.unobserve(e.target);
+            }
+        });
+    }, { threshold: 0.08 });
+    els.forEach(el => revealObserver.observe(el));
+}
+// Init al caricamento
+window.addEventListener('load', () => {
+    initReveal();
+    // Anima hero stats con delay
+    document.querySelectorAll('.hero-stat').forEach((el, i) => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(12px)';
+        el.style.transition = `opacity 0.5s ease ${0.3 + i*0.1}s, transform 0.5s ease ${0.3 + i*0.1}s`;
+        setTimeout(() => {
+            el.style.opacity = '1';
+            el.style.transform = 'translateY(0)';
+        }, 100);
+    });
+});
+
+/* scroll sidebar link nel dossier */
+window.scrollDossier = function(id) {
+    const el = document.getElementById(id);
+    const scroll = document.getElementById('page-dossier');
+    if (el && scroll) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    return false;
+};
+
+/* ============================================================
+   CRUSCOTTO AHP
+============================================================ */
+(function() {
+    const CRITERI = [
+        { nome: 'Sostenibilità Economica', colore: '#e67e22' },
+        { nome: 'Identità Storica',        colore: '#3498db' },
+        { nome: 'Impatto Sociale',         colore: '#27ae60' },
+    ];
+    const ALTERNATIVE = [
+        { nome: 'Conservazione Storica',    colore: '#3498db' },
+        { nome: 'Riqualificazione Moderna', colore: '#e74c3c' },
+    ];
+    const PAIRS = [[0,1],[0,2],[1,2]];
+
+    let currentStep = 0;
+    const TOTAL = 8;
+    let selectedRole = 'Cittadino';
+    let sessionData = [];
+    let chartD = null, chartR = null;
+
+    // Popola UI
+    function initUI() {
+        PAIRS.forEach(([i,j], idx) => {
+            const l = document.getElementById(`criteri-left-${idx}`);
+            const r = document.getElementById(`criteri-right-${idx}`);
+            if(l) l.textContent = CRITERI[i].nome;
+            if(r) r.textContent = CRITERI[j].nome;
+        });
+        CRITERI.forEach((c, idx) => {
+            const el = document.getElementById(`context-c${idx}`);
+            if(el) el.textContent = c.nome;
+        });
+    }
+    initUI();
+
+    window.atenaMove = function(n) {
+        if (n===1 && currentStep===0) {
+            const v = document.getElementById('input-stakeholder')?.value.trim();
+            if (!v) { alert('Inserisci un identificativo.'); return; }
+        }
+        const steps = document.querySelectorAll('#section-wizard .atena-step');
+        if (currentStep+n < 0 || currentStep+n >= steps.length) return;
+        steps[currentStep].classList.remove('a-active-step');
+        currentStep += n;
+        steps[currentStep].classList.add('a-active-step');
+        document.getElementById('atena-progress-bar').style.width = (currentStep/(TOTAL-1)*100)+'%';
+        document.getElementById('atena-main').scrollTop = 0;
+        if (currentStep === TOTAL-1) calcAndSave();
+    };
+
+    window.selectRole = function(el) {
+        document.querySelectorAll('.role-card').forEach(c => c.classList.remove('a-active-role'));
+        el.classList.add('a-active-role');
+        selectedRole = el.dataset.role;
+    };
+
+    window.updateSliderUI = function(type, idx) {
+        const el = document.getElementById(`slider-${type}-${idx}`);
+        const fb = document.getElementById(`feedback-${type}-${idx}`);
+        if(!el||!fb) return;
+        const val = parseInt(el.value);
+        let nA = type==='c' ? CRITERI[PAIRS[idx][0]].nome : ALTERNATIVE[0].nome;
+        let nB = type==='c' ? CRITERI[PAIRS[idx][1]].nome : ALTERNATIVE[1].nome;
+        fb.innerHTML = val===0 ? 'Uguale Importanza'
+            : val<0 ? `<b>${nA}</b> prevale (intensità ${Math.abs(val)+1})`
+            : `<b>${nB}</b> prevale (intensità ${val+1})`;
+    };
+
+    function getRI(n) {
+        return {1:0,2:0,3:0.58,4:0.90,5:1.12,6:1.24,7:1.32,8:1.41,9:1.45,10:1.49}[n] ?? 1.49;
+    }
+    function buildMatrix(n, vals) {
+        const m = Array.from({length:n}, ()=>Array(n).fill(1.0));
+        vals.forEach(({i,j,v}) => {
+            if(v<0){const s=Math.abs(v)+1; m[i][j]=s; m[j][i]=1/s;}
+            else if(v>0){const s=v+1; m[i][j]=1/s; m[j][i]=s;}
+        });
+        return m;
+    }
+    function ahpWeights(matrix) {
+        const n = matrix.length;
+        const cs = Array(n).fill(0);
+        for(let j=0;j<n;j++) for(let i=0;i<n;i++) cs[j]+=matrix[i][j];
+        const w = [];
+        for(let i=0;i<n;i++){
+            let s=0;
+            for(let j=0;j<n;j++) s+=cs[j]>0?matrix[i][j]/cs[j]:1/n;
+            w.push(s/n);
+        }
+        let lm=0;
+        w.forEach((wi,i)=>{
+            let row=0;
+            for(let j=0;j<n;j++) row+=matrix[i][j]*w[j];
+            if(wi>0) lm+=row/wi;
+        });
+        lm/=n;
+        const CI=(lm-n)/(n-1);
+        const CR=n<=2?0:CI/getRI(n);
+        return {weights:w, CR:Math.max(0,CR)};
+    }
+
+    function calcAndSave() {
+        const stakeholder = document.getElementById('input-stakeholder')?.value.trim()||'Anonimo';
+        const cVals = PAIRS.map(([i,j],idx)=>({i,j,v:parseInt(document.getElementById(`slider-c-${idx}`)?.value||0)}));
+        const cRes = ahpWeights(buildMatrix(CRITERI.length, cVals));
+        const aVals = CRITERI.map((_,idx)=>({i:0,j:1,v:parseInt(document.getElementById(`slider-a-${idx}`)?.value||0)}));
+        const scores = Array(ALTERNATIVE.length).fill(0);
+        CRITERI.forEach((_,ci)=>{
+            const aR = ahpWeights(buildMatrix(ALTERNATIVE.length,[aVals[ci]]));
+            aR.weights.forEach((w,ai)=> scores[ai]+=w*cRes.weights[ci]);
+        });
+        const ts = new Date().toLocaleDateString('it-IT')+' '+new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+        sessionData.push({stakeholder,ruolo:selectedRole,timestamp:ts,pesi:cRes.weights,scores,CR:cRes.CR});
+
+        const cr = cRes.CR;
+        const badge = document.getElementById('sidebar-cr');
+        badge.textContent = 'CR: '+cr.toFixed(3);
+        badge.style.borderColor = cr<=0.1?'#27ae60':cr<=0.15?'#e67e22':'#e74c3c';
+        badge.style.color       = cr<=0.1?'#27ae60':cr<=0.15?'#e67e22':'#e74c3c';
+        document.getElementById('status-dot').classList.add('s-active');
+        document.getElementById('status-text').textContent = 'Dati acquisiti';
+        updateResults(); updateRegistro();
+    }
+
+    function updateResults() {
+        if(!sessionData.length) return;
+        document.getElementById('stat-count').textContent = sessionData.length;
+        const avgCR = sessionData.reduce((s,d)=>s+d.CR,0)/sessionData.length;
+        const crEl = document.getElementById('stat-cr');
+        crEl.textContent = avgCR.toFixed(3);
+        crEl.style.color = avgCR<=0.1?'#27ae60':avgCR<=0.15?'#e67e22':'#e74c3c';
+
+        const ag = Array(ALTERNATIVE.length).fill(0);
+        sessionData.forEach(d=>d.scores.forEach((s,i)=>ag[i]+=s));
+        const tot = ag.reduce((a,b)=>a+b,0)||1;
+        const norm = ag.map(s=>s/tot);
+
+        let hAct=0;
+        norm.forEach(p=>{if(p>0) hAct-=p*Math.log2(p);});
+        const hMax = Math.log2(ALTERNATIVE.length);
+        const sh = hMax>0?(1-hAct/hMax)*100:100;
+        const shEl = document.getElementById('stat-shannon');
+        shEl.textContent = sh.toFixed(1)+'%';
+        shEl.style.color = sh>50?'#27ae60':'#e67e22';
+
+        const agC = Array(CRITERI.length).fill(0);
+        sessionData.forEach(d=>d.pesi.forEach((p,i)=>agC[i]+=p));
+        const normC = agC.map(v=>v/sessionData.length);
+
+        if(chartD) chartD.destroy();
+        chartD = new Chart(document.getElementById('chartDoughnut'),{
+            type:'doughnut',
+            data:{labels:ALTERNATIVE.map(a=>a.nome),datasets:[{data:norm.map(s=>(s*100).toFixed(1)),backgroundColor:ALTERNATIVE.map(a=>a.colore),borderWidth:0}]},
+            options:{maintainAspectRatio:false,cutout:'72%',plugins:{legend:{position:'bottom'}}}
+        });
+        if(chartR) chartR.destroy();
+        chartR = new Chart(document.getElementById('chartRadar'),{
+            type:'radar',
+            data:{labels:CRITERI.map(c=>c.nome),datasets:[{label:'Pesi',data:normC.map(v=>parseFloat(v.toFixed(3))),borderColor:CRITERI[0].colore,backgroundColor:CRITERI[0].colore+'22',pointBackgroundColor:CRITERI[0].colore,borderWidth:3,pointRadius:5}]},
+            options:{maintainAspectRatio:false,scales:{r:{beginAtZero:true,max:1,ticks:{display:false},pointLabels:{font:{size:11,weight:'bold'}}}},plugins:{legend:{display:false}}}
+        });
+
+        const wIdx = norm.indexOf(Math.max(...norm));
+        const tCIdx = normC.indexOf(Math.max(...normC));
+        document.getElementById('interpretation-box').innerHTML = `
+            <p>Con <strong>${sessionData.length} valutazione${sessionData.length>1?'i':''}</strong>, lo scenario
+            <strong style="color:${ALTERNATIVE[wIdx].colore}">${ALTERNATIVE[wIdx].nome}</strong>
+            emerge come preferito (${(norm[wIdx]*100).toFixed(1)}% peso aggregato).</p>
+            <p>Il criterio più determinante è <strong>${CRITERI[tCIdx].nome}</strong>
+            (peso: ${(normC[tCIdx]*100).toFixed(1)}%). Consenso Shannon: <strong>${sh.toFixed(1)}%</strong> —
+            ${sh>50?'la comunità mostra una direzione comune.':'le visioni sono ancora divergenti.'}</p>`;
+    }
+
+    function updateRegistro() {
+        const tbody = document.getElementById('registro-tbody');
+        if(!tbody) return;
+        tbody.innerHTML = '';
+        [...sessionData].reverse().forEach(d=>{
+            const wi = d.scores.indexOf(Math.max(...d.scores));
+            const cc = d.CR<=0.1?'cr-ok':d.CR<=0.15?'cr-warn':'cr-err';
+            tbody.innerHTML += `<tr>
+                <td><strong>${d.stakeholder}</strong></td>
+                <td><span style="background:#eee;padding:3px 10px;border-radius:20px;font-size:0.78rem;">${d.ruolo}</span></td>
+                <td style="color:#999;font-size:0.8rem;">${d.timestamp}</td>
+                <td><span class="${cc}">${d.CR.toFixed(4)}</span></td>
+                <td><strong>${ALTERNATIVE[wi].nome}</strong></td>
+            </tr>`;
+        });
+    }
+
+    window.resetAtena = function() {
+        sessionData=[];currentStep=0;
+        document.getElementById('input-stakeholder').value='';
+        document.querySelectorAll('.atena-slider').forEach(s=>s.value=0);
+        document.querySelectorAll('.slider-feedback').forEach(f=>f.innerHTML='Uguale Importanza');
+        document.querySelectorAll('#section-wizard .atena-step').forEach((s,i)=>s.classList.toggle('a-active-step',i===0));
+        document.getElementById('atena-progress-bar').style.width='0%';
+        document.getElementById('sidebar-cr').textContent='CR: —';
+        document.getElementById('sidebar-cr').style.borderColor='';
+        document.getElementById('sidebar-cr').style.color='';
+        document.getElementById('status-dot').classList.remove('s-active');
+        document.getElementById('status-text').textContent='In attesa di valutazione';
+        document.getElementById('registro-tbody').innerHTML='<tr><td colspan="5" style="text-align:center;opacity:0.4;padding:28px;font-size:0.88rem;">Nessun dato — avvia una valutazione.</td></tr>';
+        document.getElementById('interpretation-box').innerHTML='<p>Completa almeno una valutazione per generare l\'interpretazione.</p>';
+        document.getElementById('stat-count').textContent='0';
+        document.getElementById('stat-cr').textContent='—';
+        document.getElementById('stat-shannon').textContent='—';
+        if(chartD){chartD.destroy();chartD=null;}
+        if(chartR){chartR.destroy();chartR=null;}
+        showAtenaSection('wizard');
+    };
+
+    window.showAtenaSection = function(name) {
+        document.querySelectorAll('.atena-section').forEach(s=>s.classList.remove('a-active-section'));
+        document.getElementById('section-'+name).classList.add('a-active-section');
+        document.querySelectorAll('.atena-nav-btn').forEach(b=>b.classList.remove('a-active'));
+        const map={wizard:0,results:1,registro:2};
+        document.querySelectorAll('.atena-nav-btn')[map[name]]?.classList.add('a-active');
+        document.getElementById('atena-main').scrollTop=0;
+    };
+})();
+</script>
+
+</body>
+</html>
